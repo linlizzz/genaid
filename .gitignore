@@ -1,0 +1,5 @@
+.ipynb_checkpoints/
+logs/
+*.out
+*.err
+genaid_env/
