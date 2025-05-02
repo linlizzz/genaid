@@ -7,11 +7,10 @@ def summarize(text):
 
 
 if __name__ == "__main__":
-    text = "Cause of result: Cough\
-Preliminary information: 32-year-old generally healthy woman. General respiratory symptoms for 5-6 days, \
-    now cough is emphasized, mild flank pain with coughing fits. No fever, ear or sinus symptoms. \
-Current status:  Health good. Breathing free, calm. Heart rate steady, no rhythm. RR 127/80 p 70. \
-    Mild mucus rales in the lungs. Ttymp 36.5. Spo2 98%. Rapid CRP 16. \
-Plan: Impression of viral bronchitis, symptomatic treatment. Speech work: sva 3 days, new appointment required. \
-Diagnosis: J20.9 Unspecified acute bronchitis."
+    text = "Tulosyy: Yskä. \
+Esitiedot: 32-v yleensä terve nainen. 5-6 vrk ajan yleishengitystieoireita, nyt korostuu yskä, yskänpuuskan yhteydessä lievää kylkikipua. Ei kuumetta, korva- tai poskiontelo-oireita. \
+Nykytila: Yt hyvä. Hengitys vapaata, rauhallista. Sydämestä tas. rytmi ei sä. RR 127/80 p 70. Keuhkoista lievät limarahinat. Ttymp 36,5. Spo2 98%. Pika-crp 16. \
+Suunnitelma: Vaikutelma virusbronkiitista, johon oireenmukainen hoito. Puhetyö: sva 3 vrk, tarv. uusi yhteys. \
+Diagnoosi: J20.9 Määrittämätön akuutti keuhkoputkitulehdus."
+
     print("<<< Summary text:", summarize(text))

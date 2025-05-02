@@ -32,75 +32,61 @@ Metformiiniannosta ei voida nostaa, ei siedä suurempaa annosta."
 
 
 # ask the model to evaluate the diagnosis
-prompt = "Olet terveydenhuollon ja kliinisen tutkimuksen asiantuntija, jonka tehtävänä on arvioida, ovatko lääkärin diagnoosit ja suunnitelmat annettujen virallisten ohjeiden mukaisia. Saat kyselynä potilaan kliinisen kertomuksen ja ohjeet.\
-Syöte sisältää kaksi osaa:\
-1. Kysely - Lääketieteellinen diagnoositietue. Sisältää potilaan perustiedot, tutkimustulokset, lääkärin diagnoosin ja ehdotukset.\
-2. Ohjeet. Sisältää ehdotuksia ja vasta-aiheita erilaisiin sairauksiin.\
-Tulostesi tulee sisältää seuraavat osat:\
-1. Tee yhteenveto potilaan historiasta. \
-2. Tee yhteenveto siitä, mitä lääkäri tutki. \
-3. Tee yhteenveto lääkärin löydöksistä. \
-4. Tee yhteenveto lääkärin diagnoosista. \
-5. Tee yhteenveto hoitosuunnitelmasta. \
-6. Arvioi, noudattaako kohdassa 2 tiivistämäsi tutkimusstrategia annettuja ohjeita. Miksi tai miksi ei? \
-7. Arvioi, onko kohdassa 4 esittämäsi diagnoosi yhteensopiva potilaan historian ja lääkärin löydösten kanssa. \
-8. Arvioi, noudattaako kohdassa 5 esittämäsi hoitosuunnitelma annettuja ohjeita. Miksi tai miksi ei? \
-9. Korosta tarpeelliset ohjeet, joita lääkäri ei ole käsitellyt hoitosuunnitelmassa. Ohita tämä osa, jos et. \
-Varmista, että tulos perustuu ohjeisiin, äläkä esitä ohjeiden ulkopuolisia ehdotuksia. Sano vain, että kysymykseen ei voi vastata, jos et löydä asiaankuuluvaa annettua tietoa tai et tiedä. \
+prompt_summary = "Olet terveydenhuollon ja kliinisen tutkimuksen asiantuntija, jonka vastuulla on poimia ja tiivistää seuraavat viisi näkökohtaa annetuista potilaan kliinisistä tiedoista. \
+Syöte on annettu potilaan kliininen muistiinpano. \
+Tuloste sisältää viisi osaa: \
+1. Yhteenveto potilaan historiasta ja yleiskunnosta. \
+2. Yhteenveto lääkärin tutkimista asioista. \
+3. Yhteenveto lääkärin löydöksistä tutkimuksessa. \
+4. Yhteenveto lääkärin diagnoosista. \
+5. Yhteenveto hoitosuunnitelmasta. \
+Varmista, että tuloste perustuu potilaan kliiniseen muistiinpanoon, äläkä sisällytä syötteen ulkopuolista sisältöä. Sano vain, että kysymykseen ei voida vastata, jos et löydä asiaankuuluvaa tietoa annetuista tiedoista tai et tiedä. Tee tuotoksesta ytimekäs mutta kattava.\
 Esimerkki: \
 Syöte: \
-Kysely - lääketieteellinen diagnoositietue: \
-Tulosyy: Yskä. \
-Esitiedot: 32-v yleensä terve nainen. 5-6 vrk ajan yleishengitystieoireita, nyt korostuu yskä, yskänpuuskan yhteydessä lievää kylkikipua. Ei kuumetta, korva- tai poskiontelo-oireita. \
-Nykytila: Yt hyvä. Hengitys vapaata, rauhallista. Sydämestä tas. rytmi ei sä. RR 127/80 p 70. Keuhkoista lievät limarahinat. Ttymp 36,5. Spo2 98%. Pika-crp 16. \
-Suunnitelma: Vaikutelma virusbronkiitista, johon oireenmukainen hoito. Puhetyö: sva 3 vrk, tarv. uusi yhteys. \
-Diagnoosi: J20.9 Määrittämätön akuutti keuhkoputkitulehdus \
-Ohjeasiakirja: \
-Älä ilman erityisiä perusteita käytä antibioottihoitoa keuhkoputkitulehduksen hoidossa. \
-Akuutti keuhkoputkitulehdus on keuhkoputkien limakalvoille rajoittuva, useimmiten viruksen aiheuttama sairaus. Antibioottihoito saattaa lyhentää hieman oireiden kestoa akuutissa keuhkoputkitulehduksessa. Akuutin keuhkoputkitulehduksen yskävaihe voi kestää noin kolme viikkoa. Toipuminen on yksilöllistä. Antibioottien käyttö lisää antibioottiresistenssiä. \
-Keuhkokuumeen todennäköisyys kasvaa, jos potilaalla on seuraavia oireita: \
-kuume ≥ 37,8 ºC. \
-tihentynyt hengitys (> 16/min). \
-takykardia (yli 95/min). \
-happikyllästeisyys < 96 % huoneilmalla. \
-Lisäksi keuhkokuumeeseen viittaavat seuraavat oireet: \
-Sairaus on vaikuttanut yleiskuntoon. \
-Oireet ovat kehittyneet nopeasti. \
-Hengitystieinfektion oireet ovat uudestaan vaikeutuneet. \
-Potilaalla on lisäriskitekijöitä (ikä, muut sairaudet). \
-Äkillinen keuhkoputkitulehdus voi muuttua sekainfektion kautta keuhkokuumeeksi erityisesti iäkkäillä. \
-Lähtö: \
-1.Potilaalla on ollut muutaman päivän ajan ylähengitysteiden oireita kuten yskää ja lievää kylkikipua. Hänellä ei ole kuumetta tai korvien tai poskionteloiden oireita. \
-2.Lääkäri suoritti kliinisen tutkimuksen, johon kuului sydämen ja keuhkojen kuuntelu. Lisäksi lääkäri mittasi verenpaineen, kuumeen, happisaturaation ja tulehdusarvon. \
-3.Keuhkoista kuului lievät limarahinat. Tulehdusarvo oli lievästi koholla. Tutkimuksessa ei havaittu muita poikkeavia löydöksiä. \
-4.Lääkärin diagnoosi oli viruksen aiheuttama keuhkoputkitulehdus. \
-5.Lääkäri suositteli oireenmukaista hoitoa ja kirjoitti sairauslomatodistuksen. \
-6.Kysymykseen ei voi vastata, koska annettu hoitosuositus ei käsittele potilaan tutkimista. \
-7.Lääkärin asettama diagnoosi sopii esitietoihin ja tutkimuslöydöksiin. \
-8.Lääkärin suunnitelma on annetun hoitosuosituksen mukainen, koska keuhkokuumeeseen viittaavia oireita tai löydöksiä ei ollut eikä potilaalle siten määrätty antibioottia."
+Esitiedot: 20-v nainen, jolla 1 vrk sitten äkillisesti noussut kuume, kurkku karhea. Nieleminen hiukan kivuliasta. \
+Nykytila: Yt hyvä. Cor et pulm 0. Nielurisat paloautonpunaiset, turvonneet, valkeaa proppua. Kaulalta palp imusolmukkeita. Korvat terveet. CRP 120. \
+Suunnitelma: Korkean CPR:n vuoksi lähete KNK-päivystykseen, nielupaise? Invasiivinen tauti? \
+Diagnoosi: J02.9 - Määrittämätön akuutti nielutulehdus. \
+Tulos: \
+1. Potilaalla on ollut kuumetta ja kurkkukipua 24 tuntia, johon liittyy kipua niellessä. \
+2. Lääkäri arvioi potilaan yleistilan, kuunteli sydäntä ja keuhkoja, tutki kurkun, korvat ja kaulan sekä mittasi C-reaktiivisen proteiinin. \
+3. Nielurisat olivat selvästi punaiset ja turvonneet. Kaulassa havaittiin suurentuneita imusolmukkeita. CRP oli 120, mikä on selvästi koholla. \
+4. Lääkäri diagnosoi potilaalla nielutulehduksen. \
+5. Lääkäri lähetti potilaan korva-, nenä- ja kurkkutautien ensiapuun."
+
+prompt_evaluation = "Olet terveydenhuollon ja kliinisen tutkimuksen asiantuntija, jonka vastuulla on arvioida, ovatko lääkärin diagnoosi ja suunnitelmat annettujen ohjeiden mukaisia. Saat yhteenvedon potilaan kliinisistä tiedoista ja ohjeista.\
+Syöte sisältää kaksi osaa: \
+1. Yhteenveto potilaan historiasta ja yleiskunnosta, mitä lääkäri tutki, lääkärin tutkimustulokset, lääkärin diagnoosi ja hoitosuunnitelma. \
+2. Ohjeistus, jota sinun tulisi käyttää referenssinä. \
+Tuloste sisältää kolme osaa: \
+1. Arvioi, noudattaako tutkimusstrategia annettuja ohjeita. Miksi tai miksi ei? \
+2. Arvioi, onko diagnoosi yhteensopiva potilaan historian ja lääkärin havaintojen kanssa. \
+3. Arvioi, noudattaako hoitosuunnitelma annettuja ohjeita. Miksi tai miksi ei? \
+Varmista, että tuloste perustuu ohjeeseen, äläkä sisällytä syötteen ulkopuolista sisältöä. Sano vain, että kysymykseen ei voida vastata, jos et löydä asiaankuuluvaa tietoa tai et tiedä. Tee tulosteesta ytimekäs mutta kattava. \
+Esimerkki: \
+Syöte: \
+Yhteenveto: 1. Potilaalla on ollut kuumetta ja kurkkukipua 24 tuntia, johon liittyy kipua niellessä. \
+2. Lääkäri arvioi potilaan yleisen tilan, kuunteli sydäntä ja keuhkoja, tutki kurkun, korvat ja kaulan sekä mittasi C-reaktiivisen proteiinin. \
+3. Nielurisat olivat selvästi punaiset ja turvonneet. Kaulassa havaittiin suurentuneita imusolmukkeita. CRP oli 120, mikä on selvästi koholla. \
+4. Lääkäri diagnosoi potilaalla nielutulehduksen. \
+5. Lääkäri lähetti potilaan korva-, nenä- ja kurkkutautien ensiapuun. \
+Ohje: Älä määritä CRP:tä, kun epäilet viruksen tai streptokokki A:n (StrA) aiheuttamaa nielutulehdusta. \
+Älä ota nielunäytettä lieväoireiselta (Centor-pisteet 0-2) nielukipupotilaalta. Nielukivun Centor-pisteytys: Yskän puuttuminen, 1 piste; Leukakulman alaisten imusolmukkeiden aristus ja turvotus, 1 piste; Nielurisojen turvotus tai peitteet, 1 piste; Esitietoihin perustuva tai mitattu kuume yli 38 °C, 1 piste. \
+Älä käytä muita mikrobilääkkeitä kuin V-penisilliiniä akuuttiin nielutulehdukseen, jos potilaalla ei ole vasta-aihetta penisilliinille. Toistuvan infektion suositeltava lääkitys on ensimmäisen polven kefalosporiini. \
+Tulos: \
+1. Aktiviteetti ei noudata suositusta - CRP on tarpeeton kurkkukipupotilaan diagnosoinnissa, koska CRP:tä ei yleensä pitäisi testata, kun epäillään nielutulehdusta. \
+2. Nielutulehduksen diagnoosi vastaa alustavia tietoja ja tutkimustuloksia. \
+3. Kysymykseen ei voida vastata annettujen tietojen perusteella."
 
 
-user_input = "Tulosyy: flunssa. \
-Esitiedot: Kyseessä perusterve 35-v nainen, ei sään lääkityksiä. Nyt 2 vko ajan flunssaa. Alkanut kurkkukivulla ja kuumeella. Nyt lähinnä tukkoinen, painetta poskionteloiden alueella. Ei korvakipua, ei enää kuumeilua. \
-Nykytila: Yt hyvä, sat 98%, hf rauhallinen. Sydämestä ei ausk poikkeavaa, keuhkoista limaiset, karkeat rahinat l.a. basaalisesti. Siistiytyy yskimisen jälkeen. korvat terveet, hieman alipaineiset. Nielu siisti. Kaulalla palp. reakt suurentuneet imusolmukkeet. RHA siisti, sinusscan -/-. Lämpö 36.5. \
-Suunnitelma: Vaikutelma edelleen virustaudista. Ei bakteeri-infektioon viittaavaa. Oirehoitona Nasonex, acriseu. Lisäksi kipulääke tarv. Suositeltu seesamiöljyä kostuttamaa. Uusi yhteys jos vointi heikkenee tai ei helpota. SVA 3pvä. \
-Diagnoosi: J06.9. \
-Ohjeasiakirja: \
-Älä ilman erityisiä perusteita käytä antibioottihoitoa keuhkoputkitulehduksen hoidossa. \
-Akuutti keuhkoputkitulehdus on keuhkoputkien limakalvoille rajoittuva, useimmiten viruksen aiheuttama sairaus. Antibioottihoito saattaa lyhentää hieman oireiden kestoa akuutissa keuhkoputkitulehduksessa. Akuutin keuhkoputkitulehduksen yskävaihe voi kestää noin kolme viikkoa. Toipuminen on yksilöllistä. Antibioottien käyttö lisää antibioottiresistenssiä. \
-Keuhkokuumeen todennäköisyys kasvaa, jos potilaalla on seuraavia oireita: \
-kuume ≥ 37,8 ºC. \
-tihentynyt hengitys (> 16/min). \
-takykardia (yli 95/min). \
-happikyllästeisyys < 96 % huoneilmalla. \
-Lisäksi keuhkokuumeeseen viittaavat seuraavat oireet: \
-Sairaus on vaikuttanut yleiskuntoon. \
-Oireet ovat kehittyneet nopeasti. \
-Hengitystieinfektion oireet ovat uudestaan vaikeutuneet. \
-Potilaalla on lisäriskitekijöitä (ikä, muut sairaudet). \
-Äkillinen keuhkoputkitulehdus voi muuttua sekainfektion kautta keuhkokuumeeksi erityisesti iäkkäillä."
+user_input = "Esitiedot: 16-v poika, jolla 2-3 vrk ajan nuhaa, lievää yskää, kurkkukipua. Äiti epäilee angiinaa. \
+Nykytila: Äidin kanssa vo:lla. Yt hyvä, hengitys vapaata rauhallista. Sydämestä ja keuhkoista ei kuulu poikkeavaa. Kaulalta ei palpoidu poikkeavaa. Nielu diffuusisti punoittaa, risat kenties hieman turvonneet. \
+Suunnitelma: Streptokokki-infektion poissulkuun nieluviljely, tarkistavat vastauksen itse OmaKannasta. Muuten oireenmukainen hoito. \
+Diagnoosi: J06.9 Määrittämätön akuutti ylähengitystieinfektio."
 
-#  Kommentti: Kuvattu toiminta on oleellisesti hoitosuositusten mukaista.
+guideline = "Ohje: Älä määritä CRP:tä, kun epäilet viruksen tai streptokokki A:n (StrA) aiheuttamaa nielutulehdusta. \
+Älä ota nielunäytettä lieväoireiselta (Centor-pisteet 0-2) nielukipupotilaalta. Nielukivun Centor-pisteytys: Yskän puuttuminen, 1 piste; Leukakulman alaisten imusolmukkeiden aristus ja turvotus, 1 piste; Nielurisojen turvotus tai peitteet, 1 piste; Esitietoihin perustuva tai mitattu kuume yli 38 °C, 1 piste. \
+Älä käytä muita mikrobilääkkeitä kuin V-penisilliiniä akuuttiin nielutulehdukseen, jos potilaalla ei ole vasta-aihetta penisilliinille. Toistuvan infektion suositeltava lääkitys on ensimmäisen polven kefalosporiini."
 
 
 if __name__ == '__main__':
@@ -113,15 +99,31 @@ if __name__ == '__main__':
             # break
         # elif len(query) == 0:
             # continue
-    query = user_input
-    messages = [
-        {"role": "system", "content": prompt},
-        {"role": "user", "content": query}
-    ]
-    
-    pipe = pipeline("text-generation", model="LumiOpen/Poro-34B-chat", torch_dtype=torch.bfloat16, device="cuda", max_new_tokens=1000)
-    
-    response = pipe(messages)
-        #response = client.generate(model=model, prompt=user_input)
-    print("----Poro-34B-chat----\n\n")
-    print("<<< Response:", response)
+    # models = ["LumiOpen/Poro-34B-chat", "BioMistral/BioMistral-7B", "utter-project/EuroLLM-9B-Instruct"]
+    models = ["utter-project/EuroLLM-9B-Instruct"]
+
+    for model in models:
+        pipe = pipeline("text-generation", model="utter-project/EuroLLM-9B-Instruct", torch_dtype=torch.bfloat16, device="cuda", max_new_tokens=1000)
+        
+        query_summary = user_input
+        messages_summary = [
+            {"role": "system", "content": prompt_summary},
+            {"role": "user", "content": query_summary}
+        ]
+        response_summary_all = pipe(messages_summary)
+            #response = client.generate(model=model, prompt=user_input)
+        response_summary = response_summary_all[0]['generated_text'][-1]['content']
+        print("----", model,"----\n\n")
+        print("<<< Response:", response_summary)
+        print("\n\n")
+
+
+        query_evaluation = response_summary + "\n" + guideline
+        messages_evaluation = [
+            {"role": "system", "content": prompt_evaluation},
+            {"role": "user", "content": query_evaluation}
+        ]
+        response_evaluation_all = pipe(messages_evaluation)
+        response_evaluation = response_evaluation_all[0]['generated_text'][-1]['content']
+        print("<<< Response:", response_evaluation)
+

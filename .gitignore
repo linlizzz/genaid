@@ -3,3 +3,4 @@ logs/
 *.out
 *.err
 genaid_env/
+input.py
