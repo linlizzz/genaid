@@ -11,7 +11,7 @@
 #SBATCH --partition=gpu-a100-80g,gpu-h100-80g,gpu-h100-80g-short,gpu-h200-141g-short
 
 module load mamba
-module load model-huggingface
+module load model-huggingface # Set HF_HOME to /scratch/shareddata/dldata/huggingface-hub-cache
 
 # module load scicomp-llm-env
 
@@ -21,5 +21,5 @@ export HF_HUB_OFFLINE=1
 
 source activate ./genaid_env
 
-python -u biomistral_test.py
+python -u twostage_test.py
 

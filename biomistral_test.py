@@ -65,6 +65,24 @@ guideline = "Do not measure CRP when viral or streptococcal A (StrA) pharyngitis
 Do not collect a throat swab from a patient with mild symptoms (Centor score 0-2) with sore throat. Centor score for pharyngeal calculi: Absence of cough, 1 point; Tenderness and swelling of submandibular lymph nodes, 1 point; Swollen or covered tonsils, 1 point; Fever above 38°C based on history or measured, 1 point. \
 Do not use antimicrobials other than penicillin V for acute pharyngitis unless the patient has a contraindication to penicillin. The recommended treatment for recurrent infection is a first-generation cephalosporin."
 
+
+def english_llm(user_input, model="BioMistral/BioMistral-7B", prompt=prompt_evaluation, example=example_evaluation):
+    pipe = pipeline("text-generation", model=model, torch_dtype=torch.bfloat16, device="cuda", max_new_tokens=1000)
+    messages = [
+        {"role": "user", "content": prompt},
+        {"role": "assistant", "content": "Could you give me an example of the input and output?"},
+        {"role": "user", "content": example}, 
+        {"role": "assistant", "content": "Please tell me the input. I will give the response of my task based on it."},
+        {"role": "user", "content": user_input}
+    ]
+    response_all = pipe(messages)
+    response = response_all[0]['generated_text'][-1]['content']
+    print("\n\n<<< Response:", response)
+    print("\n\n")
+    print('Done!')
+
+    return response
+
 if __name__ == '__main__':
 
     query_summarization = user_input
@@ -72,7 +90,7 @@ if __name__ == '__main__':
         {"role": "user", "content": prompt_summarization},
         {"role": "assistant", "content": "Could you give me an example?"},
         {"role": "user", "content": example_summarization},
-        {"role": "assistant", "content": "Please tell me the patient's clinical note and the coressponding guideline. I will give the response of my task based on it."},
+        {"role": "assistant", "content": "Please tell me the patient's clinical note. I will give the response of my task based on it."},
         {"role": "user", "content": query_summarization}
     ]
 

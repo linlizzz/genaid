@@ -1,37 +1,7 @@
-#import ollama
-
-#client = ollama.Client()
-
-#model = "openintegrator/poro-34b-chat"
-
-# response = client.chat(model=model, prompt=prompt)
+from finnish_llm_test import finnish_llm
+from biomistral_test import english_llm
 
 
-import torch
-from transformers import pipeline
-
-
-# Test if the model can understand the domain knowledge
-
-prompt = "Olet kokenut lääkäri ja sinun on annettava diagnoosi ja hoitosuunnitelma kyselystä annettujen kliinisten huomautusten mukaisesti."
-
-user_input = "Esitiedot: 62-v nainen, taustalla RR-tauti, hyperkolesterolemia ja DM2. Obesiteettia. Lääkityksenä: Metformiini 500mg 2+2, kandesartaani 8mg x1 ja atorvastatiini 40mg, estrogeenikorvaushoito. Tupakoi. Suvussa sydän- ja verisuonitauteja: äidille tehty pallonlaajennus 62- vuotiaana. Asuu puolison kanssa, työelämässä.\
-Seurattu diabeteshoitajalla kerran vuodessa, ed lääkärin kontrolli 3v sitten. Tällöin tarkastettu silmänpohjakuvat jotka kunnossa, ei retinopatiaan sopivia muutoksia. Samaten krea normaali ja jalkojen tunnot normaalit. EI kroonisia haavoja anamneesissa. \
-Nykytila: Yt hyvä. Sydämestä ja keuhkoista ei ausk. poikkeavaa. Iho siisti, ei haavoja. Monofilamentilla jalkapohjien terävätunto hieman heikentynyt, jotain tuntee. ADP +, ATP+, jalat hieman viileät. Vatsanpeitteet runsaat. 90kg, 160cm. Verenpaineet kotimittauksin 140-155/87-90 viikon seurannassa. \
-Lab: PVK viitteissä, Krea 103, josta GFR 62, PLV siisti, ei proteiinia. LDL 4, HDL 1.1, trigly 2,8, HbAIc 52, fP-gluk 7.0. Ei kotimittauksia.\
-Suunnitelma: \
-BM 35, toivoo laihtuvansa. Aloitetaan ozempic: Annosnostot kuukausittain.\
-Diabeteksen hoitotasapaino melko hyvä, mutta silti viitteitä neuropatiasta -> tehostetaan lääkitys ( ozempic) ja kontrolli lääkärille 1 v päähän. Silmänpohjakuviin ohjattu, lisäksi U-alb ja U-alb/krea jo nyt. \
-Verenpaineet melko hyvällä tasolla. Seuraa kuitenkin ettei lähde tuosta nousemaan. Jatkosssa kandesartaani tehostus.\
-Potilaalla ei sydän ja verisuonitauteja mutta merkittävä sukuriski + tupakoi. LDL koholla, nostetaan atorvastatiiniannosta ad 80mg. Soitto voinnista 2kk päähän. Jos voimakkaita lihashaittoja niin yhteydessä ja tällöin rabdomyolyysin poissulku.\
-Kannustettu tupakoinnin lopettamiseen. Champix erec.\
-Metformiiniannosta ei voida nostaa, ei siedä suurempaa annosta."
-
-
-
-
-
-# ask the model to evaluate the diagnosis
 prompt_summary = "Olet terveydenhuollon ja kliinisen tutkimuksen asiantuntija, jonka vastuulla on poimia ja tiivistää seuraavat viisi näkökohtaa annetuista potilaan kliinisistä tiedoista. \
 Syöte on annettu potilaan kliininen muistiinpano. \
 Tuloste sisältää viisi osaa: \
@@ -89,41 +59,42 @@ guideline = "Ohje: Älä määritä CRP:tä, kun epäilet viruksen tai streptoko
 Älä käytä muita mikrobilääkkeitä kuin V-penisilliiniä akuuttiin nielutulehdukseen, jos potilaalla ei ole vasta-aihetta penisilliinille. Toistuvan infektion suositeltava lääkitys on ensimmäisen polven kefalosporiini."
 
 
-if __name__ == '__main__':
+# models = ["LumiOpen/Poro-34B-chat", "BioMistral/BioMistral-7B", "utter-project/EuroLLM-9B-Instruct"]
 
-    # print('Chat with documents (type "exit" to quit)')
-    # chat_history = []
-    # while True:
-        # user_input = input("\n\n>>> Input: ")
-        # if query.lower() == 'exit':
-            # break
-        # elif len(query) == 0:
-            # continue
-    # models = ["LumiOpen/Poro-34B-chat", "BioMistral/BioMistral-7B", "utter-project/EuroLLM-9B-Instruct"]
-    models = ["utter-project/EuroLLM-9B-Instruct"]
+# Stage 1: Summarise the patient's history and current condition
+# The output could include:
+# 1.	Summarise the patient history.
+# 2.	Summarise what the doctor examined.
+# 3.	Summarise the doctor’s findings
+# 4.	Summarise the doctor’s diagnosis.
+# 5.	Summarise the treatment plan.
 
-    for model in models:
-        pipe = pipeline("text-generation", model="utter-project/EuroLLM-9B-Instruct", torch_dtype=torch.bfloat16, device="cuda", max_new_tokens=1000)
-        
-        query_summary = user_input
-        messages_summary = [
-            {"role": "system", "content": prompt_summary},
-            {"role": "user", "content": query_summary}
-        ]
-        response_summary_all = pipe(messages_summary)
-            #response = client.generate(model=model, prompt=user_input)
-        response_summary = response_summary_all[0]['generated_text'][-1]['content']
-        print("----", model,"----\n\n")
-        print("<<< Response:", response_summary)
-        print("\n\n")
+response_summary = finnish_llm(model="LumiOpen/Poro-34B-chat", user_input=user_input, prompt=prompt_summary)
+
+eval_input_eng = finnish_llm(model="LumiOpen/Poro-34B-chat", user_input="Yhteenveto: " + response_summary + "\n Ohje: " + guideline, prompt="translate the whole text into english version")
+# Stage 2: Evaluate the doctor's diagnosis and treatment plan based on the guidelines
+# The output could include:
+# 6.	Evaluate if the examination strategy the doctor used (in 2) follows the given guidelines. Why or why not?
+# 7.	Evaluate if the diagnosis the doctor made (in 4) is compatible with the patient history and doctor’s findings.
+# 8.	Evaluate if the treatment plan (in 5) follows the given guidelines. Why or why not?
+
+response_evaluation = english_llm(user_input=eval_input_eng, model="BioMistral/BioMistral-7B")
 
 
-        query_evaluation = response_summary + "\n" + guideline
-        messages_evaluation = [
-            {"role": "system", "content": prompt_evaluation},
-            {"role": "user", "content": query_evaluation}
-        ]
-        response_evaluation_all = pipe(messages_evaluation)
-        response_evaluation = response_evaluation_all[0]['generated_text'][-1]['content']
-        print("<<< Response:", response_evaluation)
+# Load model directly
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
+# tokenizer = AutoTokenizer.from_pretrained("LumiOpen/Poro-34B-chat")
+# model = AutoModelForCausalLM.from_pretrained("LumiOpen/Poro-34B-chat")
+'''
+fin_model = ["LumiOpen/Poro-34B-chat", "utter-project/EuroLLM-9B-Instruct"]
+eng_model = ["BioMistral/BioMistral-7B"]
+model_summary = "LumiOpen/poro-34b-chat"
+model_evaluation = "BioMistral/BioMistral-7B"
+if __name__ == "__main__":
+    if model_summary in fin_model:
+        response = finish_llm(model=model_summary, user_input=user_input, prompt=prompt_summary)
+    else:
+        fin_to_eng = finish_llm(model=model_summary, user_input=user_input, prompt="translate to english")
+        response = finish_llm(model=model_evaluation, user_input=fin_to_eng, prompt=prompt_evaluation)
+'''
