@@ -97,8 +97,6 @@ def create_guideline_embeddings(guidelines):
     return vectorstore
 
 def get_relevant_guidelines(vectorstore, query, k=5):
-    # how to get the number of k accordingly?
-
     # Search for relevant guidelines
     relevant_docs = vectorstore.similarity_search(query, k=k)
 
@@ -114,30 +112,32 @@ def get_relevant_guidelines(vectorstore, query, k=5):
     return "\n".join([doc.page_content for doc in relevant_docs])
 
 
-def finnish_llm(model, user_input, prompt, guideline_store, setting="evaluation"):
-    # Get relevant guidelines for the query
-    relevant_guidelines = get_relevant_guidelines(guideline_store, user_input)
-    
-    # Combine prompt with relevant guidelines
-    augmented_prompt = f"{prompt_evaluation}\n\nRelevant guidelines:\n{relevant_guidelines}"
-    
+def finnish_llm(model, user_input, prompt, guideline_store, setting):
     query = user_input
+    
     pipe = pipeline("text-generation", 
                     model=model, 
                     torch_dtype=torch.bfloat16, 
                     device="cuda", 
                     max_new_tokens=1000)
     
-    if setting == "evaluation":
+    if setting == "summary":
+        messages = [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": query}
+        ]
+    
+    elif setting == "evaluation":
+        # Get relevant guidelines for the query
+        relevant_guidelines = get_relevant_guidelines(guideline_store, query)
+        # Combine prompt with relevant guidelines
+        augmented_prompt = f"{prompt}\n\nRelevant guidelines:\n{relevant_guidelines}"
+
         messages = [
             {"role": "system", "content": augmented_prompt},
             {"role": "user", "content": query}
         ]   
-    elif setting == "summary":
-        messages = [
-            {"role": "system", "content": prompt_summary},
-            {"role": "user", "content": query}
-        ]
+
     response_all = pipe(messages)
     response= response_all[0]['generated_text'][-1]['content']
     print("<<< Response:\n\n", response, "\n\n<<<End of Response\n\n")
@@ -163,3 +163,5 @@ if __name__ == '__main__':
                            setting="evaluation")
     
 
+### How to get #k in RAG accordingly? Different patient stories need different guidelines.
+### Extract the keywords from symptoms/findings/diagnosis/treatment to enhance the relevance of guideline retrieval.
