@@ -49,10 +49,8 @@ Tulos: \
 3. Kysymykseen ei voida vastata annettujen tietojen perusteella."
 
 
-user_input = "Esitiedot: 16-v poika, jolla 2-3 vrk ajan nuhaa, lievää yskää, kurkkukipua. Äiti epäilee angiinaa. \
-Nykytila: Äidin kanssa vo:lla. Yt hyvä, hengitys vapaata rauhallista. Sydämestä ja keuhkoista ei kuulu poikkeavaa. Kaulalta ei palpoidu poikkeavaa. Nielu diffuusisti punoittaa, risat kenties hieman turvonneet. \
-Suunnitelma: Streptokokki-infektion poissulkuun nieluviljely, tarkistavat vastauksen itse OmaKannasta. Muuten oireenmukainen hoito. \
-Diagnoosi: J06.9 Määrittämätön akuutti ylähengitystieinfektio."
+user_input = "Puhelu: Ks. ystävällisesti edellä. 40-v mies, jolla 2 vrk sitten alkanut kuume ad 39C ja kurkkukipu. NIeluviljelyssä nyt S. pyogenes +++. Soitettu, yt hyvä, särkylääkettä tarvinnut. Aloitetaan V-pen mega 1x3 10 vrk ajan. Tarv. uusi yhteys. \
+Diagnoosi: J02.0 Streptokokkinielutulehdus."
 
 guideline = "Ohje: Älä määritä CRP:tä, kun epäilet viruksen tai streptokokki A:n (StrA) aiheuttamaa nielutulehdusta. \
 Älä ota nielunäytettä lieväoireiselta (Centor-pisteet 0-2) nielukipupotilaalta. Nielukivun Centor-pisteytys: Yskän puuttuminen, 1 piste; Leukakulman alaisten imusolmukkeiden aristus ja turvotus, 1 piste; Nielurisojen turvotus tai peitteet, 1 piste; Esitietoihin perustuva tai mitattu kuume yli 38 °C, 1 piste. \
@@ -69,9 +67,9 @@ guideline = "Ohje: Älä määritä CRP:tä, kun epäilet viruksen tai streptoko
 # 4.	Summarise the doctor’s diagnosis.
 # 5.	Summarise the treatment plan.
 
-response_summary = finnish_llm(model="LumiOpen/Poro-34B-chat", user_input=user_input, prompt=prompt_summary)
+response_summary = finnish_llm(model="utter-project/EuroLLM-9B-Instruct", user_input=user_input, prompt=prompt_summary)
 
-eval_input_eng = finnish_llm(model="LumiOpen/Poro-34B-chat", user_input="Yhteenveto: " + response_summary + "\n Ohje: " + guideline, prompt="translate the whole text into english version")
+eval_input_eng = finnish_llm(model="utter-project/EuroLLM-9B-Instruct", user_input="Yhteenveto: " + response_summary + "\n Ohje: " + guideline, prompt="translate the whole text into english version")
 # Stage 2: Evaluate the doctor's diagnosis and treatment plan based on the guidelines
 # The output could include:
 # 6.	Evaluate if the examination strategy the doctor used (in 2) follows the given guidelines. Why or why not?

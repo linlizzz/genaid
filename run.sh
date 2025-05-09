@@ -21,5 +21,5 @@ export HF_HUB_OFFLINE=1
 
 source activate ./genaid_env
 
-python -u twostage_test.py
+python -u rag_llm.py
 

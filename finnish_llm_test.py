@@ -126,7 +126,7 @@ def finnish_llm(model, user_input, prompt):
     ]
     response_all = pipe(messages)
     response= response_all[0]['generated_text'][-1]['content']
-    print("<<< Response:", response)
+    print("<<< Response:\n\n", response, "\n\n<<<End of Response\n\n")
     return response
 
 if __name__ == '__main__':
