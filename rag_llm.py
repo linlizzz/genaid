@@ -80,7 +80,7 @@ Diagnoosi: J06.9 Määrittämätön akuutti ylähengitystieinfektio."
 def create_guideline_embeddings(guidelines):
     # Split guidelines into chunks
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
+        chunk_size=200,
         chunk_overlap=50,
         separators=["\n\n", "\n", ".", " "]
     )
@@ -96,9 +96,21 @@ def create_guideline_embeddings(guidelines):
     vectorstore = FAISS.from_texts(chunks, embeddings)
     return vectorstore
 
-def get_relevant_guidelines(vectorstore, query, k=2):
+def get_relevant_guidelines(vectorstore, query, k=5):
+    # how to get the number of k accordingly?
+
     # Search for relevant guidelines
     relevant_docs = vectorstore.similarity_search(query, k=k)
+
+    guidelines = "\n".join([doc.page_content for doc in relevant_docs])
+    
+    # what's being retrieved
+    print("\n=== Retrieved Guidelines ===")
+    print(f"Number of chunks retrieved: {len(relevant_docs)}")
+    print("\nGuidelines content:")
+    print(guidelines)
+    print("========================\n")
+
     return "\n".join([doc.page_content for doc in relevant_docs])
 
 
