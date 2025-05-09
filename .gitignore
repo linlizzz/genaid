@@ -5,5 +5,3 @@ logs/
 genaid_env/
 input.py
 data/
-langchain_test.py
-langserve_test.py
