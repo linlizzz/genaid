@@ -1,0 +1,17 @@
+summarization:
+  description: Summarize the clinical note in 1-2 sentences.
+  prompt: |
+    Please summarize the following clinical note:
+
+    {note_text}
+
+adherence_check:
+  description: Check whether the note adheres to medical guidelines.
+  prompt: |
+    Based on the following clinical note and the provided guideline chunks, determine whether the note adheres to the guidelines. Explain your reasoning briefly.
+
+    Clinical Note:
+    {note_text}
+
+    Guideline Chunks:
+    {guideline_chunks}
