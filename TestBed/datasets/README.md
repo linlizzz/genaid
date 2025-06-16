@@ -1,5 +1,7 @@
 ## Guidelines:
+
 `Käypä_hoito.jsonl  ## Recommendations`
+
 `Vältä_viisaasti.jsonl  ## Avoid Wisely Recommendations`
 
 ##### Sequential chunks from the page's content, each ~ 200 words. 
@@ -26,6 +28,7 @@
     }
 
 `Käypä_hoito_flat.jsonl`
+
 `Vältä_viisaasti_flat.jsonl`
 
 ##### Contain the original, unchunked content of each page.
@@ -39,7 +42,8 @@
     }
 
 ## Clinical notes:
-    clnical_notes.jsonl
+
+`clnical_notes.jsonl`
 
 ##### Format: 
     {
@@ -49,5 +53,6 @@
     }
 
 ## Annotation:
-    annotation.jsonl
+
+`annotation.jsonl`
 
