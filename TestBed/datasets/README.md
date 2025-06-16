@@ -4,10 +4,13 @@
 
 `Vältä_viisaasti.jsonl  ## Avoid Wisely Recommendations`
 
-##### Sequential chunks from the page's content, each ~ 200 words. 
-##### Created by direct segmentation — no consideration was given to semantic similarity between sentences. 
-##### Table information on the page was included in the chunks, but image content was excluded. 
-##### Each chunk begins with the corresponding headings from different levels on that page.
+Sequential chunks from the page's content, each ~ 200 words. 
+
+Created by direct segmentation — no consideration was given to semantic similarity between sentences. 
+
+Table information on the page was included in the chunks, but image content was excluded. 
+
+Each chunk begins with the corresponding headings from different levels on that page.
 
 ##### Format: 
     {
@@ -31,7 +34,7 @@
 
 `Vältä_viisaasti_flat.jsonl`
 
-##### Contain the original, unchunked content of each page.
+Contain the original, unchunked content of each page.
 
 ##### Format: 
     {
