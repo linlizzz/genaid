@@ -4,6 +4,10 @@
 
 `Vältä_viisaasti.jsonl  ## Avoid Wisely Recommendations`
 
+`Current_Care_Guidelines.jsonl  ## translated (full?) Käypä hoito guidelines`
+
+`Current_Care_Summary.jsonl  ## contains summaries of selected Käypä hoito guidelines translated to English`
+
 Sequential chunks from the page's content, each ~ 200 words. 
 
 Created by direct segmentation — no consideration was given to semantic similarity between sentences. 
@@ -33,6 +37,10 @@ Each chunk begins with the corresponding headings from different levels on that 
 `Käypä_hoito_flat.jsonl`
 
 `Vältä_viisaasti_flat.jsonl`
+
+`Current_Care_Guidelines_flat.jsonl`
+
+`Current_Care_Summary_flat.jsonl`
 
 Contain the original, unchunked content of each page.
 
