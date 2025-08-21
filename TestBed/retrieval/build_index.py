@@ -9,7 +9,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sentence_transformers import SentenceTransformer
 
 # Where to store index
-INDEX_DIR = "retrieval/index"
+INDEX_DIR = "/scratch/work/zhangl9/genaid/TestBed/retrieval/index"
 Path(INDEX_DIR).mkdir(parents=True, exist_ok=True)
 
 
@@ -42,7 +42,7 @@ def build_bm25_index(chunks, output_path):
     # Save using joblib
     import joblib
     joblib.dump(index, output_path)
-    print(f"✅ Saved BM25 index to {output_path}")
+    print(f"Saved BM25 index to {output_path}")
 
 
 def build_embedding_index(chunks, output_path, model_name="sentence-transformers/all-MiniLM-L6-v2"):
@@ -77,3 +77,16 @@ if __name__ == "__main__":
         build_bm25_index(chunks, args.output_path)
     else:
         build_embedding_index(chunks, args.output_path, args.model_name)
+
+
+## TO DO: try different embedding models
+# TurkuNLP/sbert-cased-finnish-paraphrase
+# Cohere embed-multilingual-v3.0
+# OpenAI text-embedding-ada-002
+# OpenAI text-embedding-3-large
+# BAAI/bge-m3
+# intfloat/multilingual-e5-large
+# intfloat/multilingual-e5-large-instruct
+# intfloat/multilingual-e5-base
+# intfloat/multilingual-e5-small
+# ...

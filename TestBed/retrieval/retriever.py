@@ -58,13 +58,14 @@ if __name__ == "__main__":
     # For embedding-based retrieval
     retriever = GuidelineRetriever(
         mode="embedding",
-        index_path="retrieval/index/embedding_index.json"
+        index_path="/scratch/work/zhangl9/genaid/TestBed/retrieval/index/embedding_index.json"
     )
 
-    clinical_note = "Potilas valittaa pitkittynyttä yskää ja hengityksen vinkunaa."
+    clinical_note = "Potilas valittaa pitkittynyttä yskää ja hengityksen vinkunaa." # "The patient complains of a prolonged cough and wheezing."
     results = retriever.retrieve(clinical_note, top_k=3)
 
     for i, res in enumerate(results):
         print(f"Rank {i+1} | Score: {res['score']:.3f}")
         print(f"Chunk ID: {res['chunk_id']}")
-        print(f"Content: {res['content'][:300]}...\n")
+        print(f"Guideline ID: {res['guideline_id']}")
+        print(f"Content: {res['content']}...\n")
