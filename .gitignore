@@ -4,4 +4,8 @@ logs/
 *.err
 genaid_env/
 input.py
-data/
+data/*
+!data/README.md
+TestBed/retrieval/faiss_store/
+TestBed/retrieval/index/
+TestBed/datasets/json_guidelines/
