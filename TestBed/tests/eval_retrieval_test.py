@@ -41,12 +41,33 @@ def precision_at_k(ground_truth: List[str], ranked_ids: List[str], k: int) -> fl
     hits = sum(1 for rid in ranked_ids[:k] if rid in ground_truth)
     return hits / k
 
+def average_precision_at_k(ground_truth: List[str], ranked_ids: List[str], k: int) -> float:
+    """Average Precision (AP) at k for a single query"""
+    if not ground_truth:
+        return 0.0
+    hits, sum_precisions = 0, 0.0
+    for i, rid in enumerate(ranked_ids[:k], start=1):
+        if rid in ground_truth:
+            hits += 1
+            sum_precisions += hits / i   # precision at this rank
+    return sum_precisions / len(ground_truth)
+
+
+def mean_average_precision(ground_truths: List[List[str]], rankings: List[List[str]], k: int) -> float:
+    """mAP@k across multiple queries"""
+    ap_scores = [
+        average_precision_at_k(gt, ranked, k)
+        for gt, ranked in zip(ground_truths, rankings)
+    ]
+    return sum(ap_scores) / len(ap_scores) if ap_scores else 0.0
+
+
 def evaluate_guideline_level(db: GuidelineFAISS, notes_jsonl: str, k: int):
     """
     notes_jsonl: clinical_notes.jsonl
       each line: {"note_id": "...", "text": "...", "linked_guideline_ids": ["hoi_04010", "dnd00035", ...]}
     """
-    mrr_total = ndcg_total = recall_total = prec_total = 0.0
+    mrr_total = ndcg_total = recall_total = prec_total = map_total = 0.0
     n = 0
     with open(notes_jsonl, "r", encoding="utf-8") as f:
         for line in f:
@@ -65,6 +86,7 @@ def evaluate_guideline_level(db: GuidelineFAISS, notes_jsonl: str, k: int):
             ndcg_total += ndcg_at_k(gt_guidelines, ranked_ids, k)
             recall_total += recall_at_k(gt_guidelines, ranked_ids, k)
             prec_total += precision_at_k(gt_guidelines, ranked_ids, k)
+            map_total += average_precision_at_k(gt_guidelines, ranked_ids, k)
             n += 1
 
     if n == 0:
@@ -76,6 +98,7 @@ def evaluate_guideline_level(db: GuidelineFAISS, notes_jsonl: str, k: int):
     print(f"nDCG@{k}:      {ndcg_total / n:.4f}")
     print(f"Recall@{k}:    {recall_total / n:.4f}")
     print(f"Precision@{k}: {prec_total / n:.4f}")
+    print(f"MAP@{k}:       {map_total / n:.4f}")
 
 ## TO BE IMPROVED: chunk-level retrieval
 def evaluate_chunk_level(db: GuidelineFAISS, qrels_jsonl: str, k: int):
@@ -83,7 +106,7 @@ def evaluate_chunk_level(db: GuidelineFAISS, qrels_jsonl: str, k: int):
     qrels_jsonl:
     each line: {"query": "...", "relevant_chunk_ids": ["hoi_04010_chunk_02", ...]}
     """
-    mrr_total = ndcg_total = recall_total = prec_total = 0.0
+    mrr_total = ndcg_total = recall_total = prec_total = map_total = 0.0
     n = 0
     with open(qrels_jsonl, "r", encoding="utf-8") as f:
         for line in f:
@@ -101,6 +124,7 @@ def evaluate_chunk_level(db: GuidelineFAISS, qrels_jsonl: str, k: int):
             ndcg_total += ndcg_at_k(gt_chunks, ranked_ids, k)
             recall_total += recall_at_k(gt_chunks, ranked_ids, k)
             prec_total += precision_at_k(gt_chunks, ranked_ids, k)
+            map_total += average_precision_at_k(gt_chunks, ranked_ids, k)
             n += 1
 
     if n == 0:
@@ -112,6 +136,7 @@ def evaluate_chunk_level(db: GuidelineFAISS, qrels_jsonl: str, k: int):
     print(f"nDCG@{k}:      {ndcg_total / n:.4f}")
     print(f"Recall@{k}:    {recall_total / n:.4f}")
     print(f"Precision@{k}: {prec_total / n:.4f}")
+    print(f"MAP@{k}:       {map_total / n:.4f}")
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()

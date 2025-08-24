@@ -1,3 +1,4 @@
+## FAISS index for guideline chunks
 import os
 import glob
 import json
@@ -14,6 +15,20 @@ def _ensure_dir(path: str):
 def _l2_normalize(x: np.ndarray) -> np.ndarray:
     norms = np.linalg.norm(x, axis=1, keepdims=True) + 1e-12
     return x / norms
+
+## E5-based models need special prefixing
+def _needs_e5_prefix(model_name: str) -> bool:
+    name = model_name.lower()
+    return "e5" in name  # e.g. intfloat/multilingual-e5-base
+
+def _prep_passages(texts, use_e5: bool):
+    if not use_e5:
+        return texts
+    return [f"passage: {t}" for t in texts]
+
+def _prep_query(q, use_e5: bool):
+    return f"query: {q}" if use_e5 else q
+
 
 class GuidelineFAISS:
     """
@@ -114,7 +129,10 @@ class GuidelineFAISS:
         all_vecs: List[np.ndarray] = []
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i+batch_size]
-            vecs = self.model.encode(batch, convert_to_numpy=True, show_progress_bar=False)
+
+            use_e5 = _needs_e5_prefix(self.model_name)
+            vecs = self.model.encode(_prep_passages(batch, use_e5), convert_to_numpy=True, show_progress_bar=False)
+            # vecs = self.model.encode(batch, convert_to_numpy=True, show_progress_bar=False)
             if self.metric == "cosine":
                 vecs = _l2_normalize(vecs)
             all_vecs.append(vecs.astype("float32"))
@@ -130,7 +148,9 @@ class GuidelineFAISS:
           - guideline_id, chunk_id, title, keywords, content, score
         larger cosine score or smaller L2 score 
         """
-        q = self.model.encode([query], convert_to_numpy=True)
+        use_e5 = _needs_e5_prefix(self.model_name)
+        q = self.model.encode([_prep_query(query, use_e5)], convert_to_numpy=True)
+        # q = self.model.encode([query], convert_to_numpy=True)
         if self.metric == "cosine":
             q = _l2_normalize(q)
         distances, indices = self.index.search(q.astype("float32"), top_k)
@@ -220,8 +240,8 @@ class GuidelineFAISS:
         meta_path = os.path.join(save_dir, "meta.parquet")
         conf_path = os.path.join(save_dir, "config.json")
         print(f"Loading index from: {index_path}")
-        # print(f"Loading meta from: {meta_path}")
-        # print(f"Loading config from: {conf_path}")
+        print(f"Loading meta from: {meta_path}")
+        print(f"Loading config from: {conf_path}")
 
         if not (os.path.exists(index_path) and os.path.exists(meta_path) and os.path.exists(conf_path)):
             raise FileNotFoundError("index.faiss/meta.parquet/config.json is missing")
