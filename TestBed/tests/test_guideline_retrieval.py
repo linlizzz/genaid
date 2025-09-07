@@ -4,7 +4,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "retrieval"))
 
-from retriever import GuidelineRetriever
+from guideline_retriever import GuidelineRetriever
 from tqdm import tqdm
 
 def load_clinical_notes(notes_path):

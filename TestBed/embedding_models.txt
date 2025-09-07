@@ -1,0 +1,13 @@
+sentence-transformers/all-MiniLM-L6-v2
+sentence-transformers/msmarco-MiniLM-L-12-v3
+embed-multilingual-v3.0
+text-embedding-ada-002
+text-embedding-3-large
+BAAI/bge-m3
+intfloat/multilingual-e5-large
+intfloat/multilingual-e5-large-instruct
+intfloat/multilingual-e5-base
+intfloat/multilingual-e5-small
+TurkuNLP/sbert-cased-finnish-paraphrase
+pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb
+biobert-base-cased-v1.1

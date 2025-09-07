@@ -8,6 +8,13 @@ import faiss
 from typing import List, Dict, Optional, Iterable
 from sentence_transformers import SentenceTransformer
 import glob, os
+from utils import load_paths
+
+paths = load_paths()
+GUIDELINE_JSON_DIR = paths["GUIDELINE_JSON_DIR"]
+GUIDELINE_FAISS_DIR = paths["GUIDELINE_FAISS_DIR"]
+CLINICAL_NOTES_PATH = paths["CLINICAL_NOTES_PATH"]
+
 
 def _ensure_dir(path: str):
     os.makedirs(path, exist_ok=True)
@@ -260,3 +267,4 @@ class GuidelineFAISS:
         if conf.get("dim") and conf["dim"] != obj.dim:
             print(f"WARNING: saved dim={conf['dim']} != current model dim={obj.dim}. Ensure model matches!")
         return obj
+

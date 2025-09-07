@@ -1,0 +1,29 @@
+Poimi annetusta lääkärin kliinisestä potilaskertomuksesta keskeiset kliiniset entiteetit.
+Palauta yksi JSON-objekti täsmälleen alla olevassa skeemassa. Älä lisää kenttiä. Älä lisää selityksiä.
+
+TÄRKEÄÄ: Perusta poiminta tiukasti annettuun sisältöön. Älä keksi tietoja.
+Jos jokin kategoria ei esiinny, palauta tyhjä taulukko kyseiselle kategorialle.
+
+Skeema:
+{
+  "language": "string, esim. fi tai en",
+  "entities": {
+    "conditions": [],        // mainitut sairaudet/tilat (string)
+    "symptoms": [],          // oireet (string)
+    "tests_ordered": [],     // tilatut tai suunnitellut testit (string)
+    "test_results": [],      // konkreettiset tulokset/havainnot (string)
+    "diagnoses": [],         // lääkärin diagnoosit (string)
+    "medications": [],       // lääkkeiden nimet + annos jos mainittu (string)
+    "allergies": [],         // allergiat (string)
+    "procedures": [],        // toimenpiteet/interventiot (string)
+    "treatment_plan": [],    // suunnitellut toimenpiteet (string)
+    "other_keywords": []     // muut keskeiset kliiniset avainsanat (string)
+  }
+}
+
+Teksti:
+---
+{{NOTE_TEXT}}
+---
+
+Tuloste: vain JSON, ei mitään ylimääräistä tekstiä.

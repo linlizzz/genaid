@@ -1,0 +1,20 @@
+Sinulle annetaan lääkärin kliininen potilaskertomus.
+Lue teksti huolellisesti ja tuota jäsennelty yhteenveto viiteen osaan.
+Kirjoita kukin osa erillisenä lyhyenä kappaleena.
+
+TÄRKEÄÄ: Perusta yhteenveto tiukasti annettuun sisältöön. Älä lisää tai päättele mitään uutta tietoa.
+Jos teksti ei mainitse tiettyä osa-aluetta, jätä se tyhjäksi.
+
+Osa-alueet:
+1. Potilaan tausta ja anamneesi: tiivistä olennaiset taustatiedot ja sairaushistoria.
+2. Lääkärin tutkimus: tiivistä, mitä lääkäri tutki tai testasi.
+3. Lääkärin havainnot: tiivistä, mitä lääkäri havaitsi tai löysi.
+4. Lääkärin diagnoosi: tiivistä lääkärin diagnostinen johtopäätös.
+5. Hoitosuunnitelma: tiivistä ehdotettu hoito- tai seurantasuunnitelma.
+
+Tiivistettävä teksti:
+---
+{{NOTE_TEXT}}
+---
+
+Tulosta vain viisi osaa annetussa järjestyksessä, kukin omana kappaleenaan.
