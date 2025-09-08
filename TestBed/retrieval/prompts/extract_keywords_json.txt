@@ -6,24 +6,63 @@ Jos jokin kategoria ei esiinny, palauta tyhjä taulukko kyseiselle kategorialle.
 
 Skeema:
 {
-  "language": "string, esim. fi tai en",
+  "language": "string, e.g., fi or en",
   "entities": {
-    "conditions": [],        // mainitut sairaudet/tilat (string)
-    "symptoms": [],          // oireet (string)
-    "tests_ordered": [],     // tilatut tai suunnitellut testit (string)
-    "test_results": [],      // konkreettiset tulokset/havainnot (string)
-    "diagnoses": [],         // lääkärin diagnoosit (string)
-    "medications": [],       // lääkkeiden nimet + annos jos mainittu (string)
-    "allergies": [],         // allergiat (string)
-    "procedures": [],        // toimenpiteet/interventiot (string)
-    "treatment_plan": [],    // suunnitellut toimenpiteet (string)
-    "other_keywords": []     // muut keskeiset kliiniset avainsanat (string)
+    "sairaudet": [],        // mainitut sairaudet/tilat (string)
+    "oireet": [],          // oireet (string)
+    "suunnitellut testit": [],     // tilatut tai suunnitellut testit (string)
+    "tutkimustulokset": [],      // konkreettiset tulokset/havainnot (string)
+    "diagnoosit": [],         // lääkärin diagnoosit (string)
+    "lääkkeet": [],       // lääkkeiden nimet + annos jos mainittu (string)
+    "allergiat": [],         // allergiat (string)
+    "interventiot": [],        // toimenpiteet/interventiot (string)
+    "hoitosuunnitelma": [],    // suunnitellut toimenpiteet (string)
+    "muut avainsanat": []     // muut keskeiset kliiniset avainsanat (string)
   }
 }
 
+Esimerkki:
+---
 Teksti:
+Tulosyy: Yskä.
+Esitiedot: 32-v yleensä terve nainen. 5-6 vrk ajan yleishengitystieoireita, nyt korostuu yskä, yskänpuuskan yhteydessä lievää kylkikipua. Ei kuumetta, korva- tai poskiontelo-oireita.
+Nykytila: Yt hyvä. Hengitys vapaata, rauhallista. Sydämestä tas. rytmi ei sä. RR 127/80 p 70. Keuhkoista lievät limarahinat. Ttymp 36,5. Spo2 98%. Pika-crp 16.
+Suunnitelma: Vaikutelma virusbronkiitista, johon oireenmukainen hoito. Puhetyö: sva 3 vrk, tarv. uusi yhteys.
+Diagnoosi: J20.9 Määrittämätön akuutti keuhkoputkitulehdus.
+
+Tuloste:
+{
+  "language": "fi",
+  "entities": {
+    "sairaudet": ["virusbronkiitti"],
+    "oireet": ["yskä", "kylkikipu yskänpuuskan yhteydessä", "hengitystieoireet", "limarahinat"],
+    "suunnitellut testit": [],
+    "tutkimustulokset": [
+      "ei kuumetta",
+      "ei korva- tai poskiontelo-oireita",
+      "yleisvointi hyvä",
+      "hengitys vapaata ja rauhallista",
+      "sydän: tasainen rytmi, ei sivuääniä",
+      "RR 127/80, syke 70",
+      "tty lämpö 36,5",
+      "SpO2 98%",
+      "pika-CRP 16",
+      "keuhkoista lievät limarahinat"
+    ],
+    "diagnoosit": ["J20.9 Määrittämätön akuutti keuhkoputkitulehdus"],
+    "lääkkeet": [],
+    "allergiat": [],
+    "interventiot": [],
+    "hoitosuunnitelma": [
+      "oireenmukainen hoito",
+      "sairausloma 3 vrk",
+      "tarvittaessa uusi yhteys"
+    ],
+    "muut avainsanat": ["puhetyö"]
+  }
+}
 ---
+Käsittele seuraava teksti:
 {{NOTE_TEXT}}
----
 
 Tuloste: vain JSON, ei mitään ylimääräistä tekstiä.

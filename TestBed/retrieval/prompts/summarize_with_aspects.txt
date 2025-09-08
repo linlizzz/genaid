@@ -12,9 +12,23 @@ Osa-alueet:
 4. Lääkärin diagnoosi: tiivistä lääkärin diagnostinen johtopäätös.
 5. Hoitosuunnitelma: tiivistä ehdotettu hoito- tai seurantasuunnitelma.
 
-Tiivistettävä teksti:
+Esimerkki:
 ---
-{{NOTE_TEXT}}
----
+Potilaskertomus:
+Tulosyy: Yskä.
+Esitiedot: 32-v yleensä terve nainen. 5-6 vrk ajan yleishengitystieoireita, nyt korostuu yskä, yskänpuuskan yhteydessä lievää kylkikipua. Ei kuumetta, korva- tai poskiontelo-oireita.
+Nykytila: Yt hyvä. Hengitys vapaata, rauhallista. Sydämestä tas. rytmi ei sä. RR 127/80 p 70. Keuhkoista lievät limarahinat. Ttymp 36,5. Spo2 98%. Pika-crp 16.
+Suunnitelma: Vaikutelma virusbronkiitista, johon oireenmukainen hoito. Puhetyö: sva 3 vrk, tarv. uusi yhteys.
+Diagnoosi: J20.9 Määrittämätön akuutti keuhkoputkitulehdus.
 
-Tulosta vain viisi osaa annetussa järjestyksessä, kukin omana kappaleenaan.
+Yhteenveto:
+1. Potilaalla on ollut muutaman päivän ajan ylähengitysteiden oireita kuten yskää ja lievää kylkikipua. Hänellä ei ole kuumetta tai korvien tai poskionteloiden oireita.
+2. Lääkäri suoritti kliinisen tutkimuksen, johon kuului sydämen ja keuhkojen kuuntelu. Lisäksi lääkäri mittasi verenpaineen, kuumeen, happisaturaation ja tulehdusarvon.
+3. Keuhkoista kuului lievät limarahinat. Tulehdusarvo oli lievästi koholla. Tutkimuksessa ei havaittu muita poikkeavia löydöksiä.
+4. Lääkärin diagnoosi oli viruksen aiheuttama keuhkoputkitulehdus.
+5. Lääkäri suositteli oireenmukaista hoitoa ja kirjoitti sairauslomatodistuksen.
+---
+Laadi nyt yhteenveto seuraavasta tekstistä:
+{{NOTE_TEXT}}
+
+Tulosta vain viisi osaa annetussa järjestyksessä, kukin omana kappaleenaan. Kirjoita suomeksi. Tuota suomeksi. 
