@@ -105,11 +105,11 @@ def plot_overview(df: pd.DataFrame, metrics, outdir: str):
         plt.close()
 
 # ========== Main ==========
-def main():
+def main_export_tables_plots(embed_model_dir_name: str):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--summary_csv", default="exp_summary.csv", help="实验汇总 CSV")
-    ap.add_argument("--outdir_tables", default="results/tables/", help="LaTeX 输出目录")
-    ap.add_argument("--outdir_plots", default="results/plots/", help="图片输出目录")
+    # ap.add_argument("--summary_csv", default="results/sentence-transformers_all-MiniLM-L6-v2/exp_summary.csv", help="实验汇总 CSV")
+    # ap.add_argument("--outdir_tables", default="results/sentence-transformers_all-MiniLM-L6-v2/tables/", help="LaTeX 输出目录")
+    # ap.add_argument("--outdir_plots", default="results/sentence-transformers_all-MiniLM-L6-v2/plots/", help="图片输出目录")
     ap.add_argument("--metrics", default=",".join(METRICS_DEFAULT))
     ap.add_argument("--embeddings", default="", help="只保留这些 embedding(逗号分隔)")
     ap.add_argument("--modes", default="", help="只保留这些 input_mode(逗号分隔)")
@@ -117,10 +117,13 @@ def main():
     ap.add_argument("--bold_best", action="store_true")
     args = ap.parse_args()
 
-    ensure_dir(args.outdir_tables)
-    ensure_dir(args.outdir_plots)
+    summary_csv_dir = f"results/{embed_model_dir_name}/exp_summary.csv"
+    outdir_tables = f"results/{embed_model_dir_name}/tables/"
+    outdir_plots = f"results/{embed_model_dir_name}/plots/"
+    ensure_dir(outdir_tables)
+    ensure_dir(outdir_plots)
 
-    df = pd.read_csv(args.summary_csv)
+    df = pd.read_csv(summary_csv_dir)
     df = normalize_columns(df)
 
     need = {"embedding", "input_mode", "MRR", "nDCG", "Recall", "Precision", "mAP"}
@@ -134,7 +137,7 @@ def main():
 
     metrics = [m.strip() for m in args.metrics.split(",") if m.strip()]
 
-'''
+
     # ========== Table ==========
 
     # 按 embedding 排序，input_mode 列顺序固定：raw,summary,keywords,combo（若存在）
@@ -155,16 +158,17 @@ def main():
         k_val = int(df["K"].iloc[0]) if "K" in df.columns and pd.notna(df["K"].iloc[0]) else 10
         caption = f"{metric} by input mode (K={k_val}). Higher is better."
         label = f"tab:{metric.lower()}-by-mode"
-        outpath = os.path.join(args.outdir_tables, f"{metric}_by_mode.tex")
+        outpath = os.path.join(outdir_tables, f"{metric}_by_mode.tex")
         to_latex(pv_fmt, caption, label, outpath, index=False)
-'''
-    #  ========== 总览表 ==========
-    # 已有的：metrics = ["MRR","nDCG","Recall","Precision", "mAP"]
+
+    # ========== Overall metrics table ==========
+    # metrics = ["MRR","nDCG","Recall","Precision", "mAP"]
     def _format_metrics_table(df_in, metrics, decimals):
         df = df_in.copy()
         for m in metrics:
             df[m] = df[m].map(lambda x: fmt_val(x, decimals))
         return df
+    
     # 总览表1：按 embedding (chunk / concat / fused）行，列为各指标在所有 input_mode 上的均值
     ov_emb = df.groupby("embedding")[metrics].mean().reset_index()
 
@@ -179,38 +183,39 @@ def main():
         ov_emb_fmt,
         caption="Overall retrieval metrics averaged across input modes (rows = embedding).",
         label="tab:overview-by-embedding",
-        outpath=os.path.join(args.outdir_tables, "overview_by_embedding.tex"),
+        outpath=os.path.join(outdir_tables, "overview_by_embedding.tex"),
         index=False
     )
+
     # 总览表2：按 input_mode (raw / summary / keywords / combo) 行，列为各指标在所有 embedding 上的均值
     ov_mode = df.groupby("input_mode")[metrics].mean().reset_index()
-
-    # 行顺序控制
+    # （可选）控制显示顺序
     mode_order = ["raw", "summary", "keywords", "combo"]
     if set(mode_order) & set(ov_mode["input_mode"].unique()):
         ov_mode["input_mode"] = pd.Categorical(ov_mode["input_mode"], categories=mode_order, ordered=True)
         ov_mode = ov_mode.sort_values("input_mode")
-
+    
     ov_mode_fmt = _format_metrics_table(ov_mode, metrics, args.decimals)
     to_latex(
         ov_mode_fmt,
         caption="Overall retrieval metrics averaged across embeddings (rows = input mode).",
         label="tab:overview-by-input-mode",
-        outpath=os.path.join(args.outdir_tables, "overview_by_input_mode.tex"),
+        outpath=os.path.join(outdir_tables, "overview_by_input_mode.tex"),
         index=False
     )
-    
-    print(f"[saved] tables -> {args.outdir_tables}")
-'''
+
+    print(f"[saved] overall metrics tables -> {outdir_tables}")
+
+
     # ========== Plot ==========
     # 分指标作图
     for m in metrics:
-        plot_metric_by_mode(df, m, args.outdir_plots)
+        plot_metric_by_mode(df, m, outdir_plots)
 
     # 总览（每个指标一张）
-    plot_overview(df, metrics, args.outdir_plots)
+    plot_overview(df, metrics, outdir_plots)
 
-    print(f"[saved] figures -> {args.outdir_plots}")
-'''
+    print(f"[saved] figures -> {outdir_plots}")
+
 if __name__ == "__main__":
-    main()
+    main_export_tables_plots(embed_model_dir_name)
