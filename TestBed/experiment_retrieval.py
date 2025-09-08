@@ -23,7 +23,7 @@ CLINICAL_NOTES_PATH = paths["CLINICAL_NOTES_PATH"]
 PROMPTS_PATH = paths["PROMPTS_PATH"]
 NOTES_REFINEMENT = paths["NOTES_REFINEMENT"]
 GUIDELINE_JSON_DIR = paths["GUIDELINE_JSON_DIR"]
-FAISS_DIR = paths["FAISS_DIR"]
+GUIDELINE_FAISS_DIR = paths["GUIDELINE_FAISS_DIR"]
 
 
 
@@ -187,7 +187,7 @@ class FaissDenseIndex:
         return out
 
 # -------------------------
-# 评测指标
+# metrics
 # -------------------------
 def dcg_at_k(rels: List[int], k: int) -> float:
     dcg = 0.0
@@ -236,14 +236,14 @@ def ap_at_k(hits_binary: List[int], gt_count: int, k: int) -> float:
 # -------------------------
 # 主流程
 # -------------------------
-def main():
+def main_experiment_retrieval(model_faiss_dir_name: str, query_model: str):
     ap = argparse.ArgumentParser()
     # 路径：默认采用你提供的常量，可由命令行覆盖
     ap.add_argument("--notes", type=str, default=CLINICAL_NOTES_PATH,
                     help="clinical_notes.jsonl(含 note_id, text, linked_guideline_ids)")
     ap.add_argument("--notes_refinement", type=str, default=NOTES_REFINEMENT,
                     help="notes_rewritten_preview.jsonl(含 note_id, summary, keywords_json, combo_query)")
-    ap.add_argument("--faiss_root", type=str, default=FAISS_DIR,
+    ap.add_argument("--faiss_root", type=str, default=GUIDELINE_FAISS_DIR,
                     help="FAISS 根目录（其下有各模型/子索引目录）")
     # 选择要对比的 embedding 子目录（默认三种）
     ap.add_argument("--use_chunk", action="store_true", help="包含 chunk_only 子目录")
@@ -253,8 +253,7 @@ def main():
     ap.add_argument("--modes", type=str, default="raw,summary,keywords,combo",
                     help="逗号分隔:raw,summary,keywords,combo")
     # 模型与检索参数
-    ap.add_argument("--query_model", type=str, default="sentence-transformers/all-MiniLM-L6-v2",
-                    help="用于编码查询的 SentenceTransformers 模型")
+    # ap.add_argument("--query_model", type=str, default="sentence-transformers/all-MiniLM-L6-v2", help="用于编码查询的 SentenceTransformers 模型")
     ap.add_argument("--top_k", type=int, default=10, help="评测@K(同时也用于检索返回 K)")
     # 输出
     ap.add_argument("--out_detail", type=str, default="exp_details.jsonl")
@@ -280,29 +279,35 @@ def main():
     # 但更通用的方式：直接在 root 下递归查找包含 index.faiss 的“叶子目录”。
     # 这里根据你的需求，直接拼接三大固定子目录：
     model_root_candidates = []
+    '''
     # 自动查找包含 all-MiniLM-L6-v2 的目录
     for name in os.listdir(args.faiss_root):
         if "MiniLM" in name or "minilm" in name.lower():
+            model_faiss_dir_name = name
             model_root_candidates.append(os.path.join(args.faiss_root, name))
     if not model_root_candidates:
         # 若未找到，就退而直接用 root（假设你把三种子目录直接放 root 下）
         model_root_candidates = [args.faiss_root]
+    '''
+    
+    model_root_candidates = [os.path.join(args.faiss_root, model_faiss_dir_name)]
+    print(f"[debug] model_root_candidates: {model_root_candidates}")
 
     # 在候选模型目录下，按开关加入三种子目录
     for model_root in model_root_candidates:
         if args.use_chunk:
             d = os.path.join(model_root, "chunk_only")
             if os.path.exists(os.path.join(d, "index.faiss")):
-                faiss_variants.append(("minilm_chunk", d))
+                faiss_variants.append(("chunk", d))
         if args.use_concat:
             d = os.path.join(model_root, "concat_titlekw_chunk")
             if os.path.exists(os.path.join(d, "index.faiss")):
-                faiss_variants.append(("minilm_concat", d))
+                faiss_variants.append(("concat", d))
         if args.use_fused:
             # 注意：你的 fused 目录名可能因权重不同而变化；这里匹配默认名称
             d = os.path.join(model_root, "fused_alpha1p0_beta0p6_gamma0p4")
             if os.path.exists(os.path.join(d, "index.faiss")):
-                faiss_variants.append(("minilm_fused10604", d))
+                faiss_variants.append(("fused10604", d))
 
     if not faiss_variants:
         raise FileNotFoundError("在 faiss_root 下没有找到包含 index.faiss 的子目录，请检查路径。")
@@ -318,12 +323,12 @@ def main():
         indices.append((name, FaissDenseIndex.load(d)))
 
     # 查询编码模型
-    print(f"[query encoder] loading {args.query_model}")
-    qmodel = SentenceTransformer(args.query_model)
+    print(f"[query encoder] loading {query_model}")
+    qmodel = SentenceTransformer(query_model)
 
     # 评测主循环
     modes = [m.strip() for m in args.modes.split(",") if m.strip()]
-    detail_f = open(args.out_detail, "w", encoding="utf-8")
+    detail_f = open(f"results/{model_faiss_dir_name}/{args.out_detail}", "w", encoding="utf-8")
 
     rows_summary = []  # 聚合汇总
     # 准备 notes 的 ground truth
@@ -347,6 +352,9 @@ def main():
             for nid, text, gt_ids in tqdm(note_items, desc=f"{emb_name}/{mode}"):
                 # 构造查询
                 qtext, aux = build_query_for_mode(mode, text, nid, preview_map)
+
+                print(f"[debug] mode: {mode}, note_id: {nid}, qtext: {qtext}")
+
                 if not qtext.strip():
                     # 查询为空则跳过或计为 0
                     row_detail = {
@@ -363,6 +371,8 @@ def main():
 
                 # 检索
                 hits = db.search(q[0], top_k=args.top_k)
+
+                print(f"[debug] mode={mode} hits_len={len(hits)} top_guidelines={[h['guideline_id'] for h in hits[:5]]}")
 
                 # 将命中里的 guideline_id 映射为文档级（去重保持顺序）
                 ranked_guidelines = []
@@ -414,10 +424,10 @@ def main():
             print(f"[summary] {summ}")
 
     detail_f.close()
-    pd.DataFrame(rows_summary).to_csv(args.out_summary, index=False)
-    print(f"\n[done] details -> {args.out_detail}")
-    print(f"[done] summary -> {args.out_summary}")
+    pd.DataFrame(rows_summary).to_csv(f"results/{model_faiss_dir_name}/{args.out_summary}", index=False)
+    print(f"\n[done] details -> results/{model_faiss_dir_name}/{args.out_detail}")
+    print(f"[done] summary -> results/{model_faiss_dir_name}/{args.out_summary}")
     print("Tips: 使用 export_latex_tables.py / plot_experiment_results.py 进一步出表与画图。")
 
 if __name__ == "__main__":
-    main()
+    main_experiment_retrieval(model_faiss_dir_name, query_model)

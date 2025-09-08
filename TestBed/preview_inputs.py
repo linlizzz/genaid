@@ -139,13 +139,13 @@ def parse_llm_json(raw: str) -> Dict:
         }}
 
 # ---------------- CLI main ----------------
-def main():
+def main_preview_inputs():
     ap = argparse.ArgumentParser()
     ap.add_argument("--notes", default=CLINICAL_NOTES_PATH)
     ap.add_argument("--out", default="notes_rewritten_preview.jsonl")
     ap.add_argument("--prompts_dir", default=PROMPTS_PATH)
     ap.add_argument("--backend", default="local", choices=["local","openai","none"])
-    ap.add_argument("--model", default="LumiOpen/Poro-34B-chat",
+    ap.add_argument("--model", default="utter-project/EuroLLM-9B-Instruct",
                     help="本地: HF 模型ID;OpenAI: 模型名(如 gpt-4o-mini)") # models = ["LumiOpen/Poro-34B-chat", "BioMistral/BioMistral-7B", "utter-project/EuroLLM-9B-Instruct"]
     ap.add_argument("--device_map", default="auto",
                     help='Transformers device map, e.g., "auto" | "cuda:0"')
@@ -160,6 +160,7 @@ def main():
     tpl_kw  = load_prompt(os.path.join(args.prompts_dir, "extract_keywords_json.txt"))
 
     # LLM
+    print(f"[debug] language model: {args.model}")
     llm = LLM(args.backend, args.model, device_map=args.device_map, dtype=args.dtype)
 
     n = 0
@@ -198,16 +199,25 @@ def main():
             # C) Combo（摘要 + 关键词串）
             def kw_to_query(kj: Dict) -> str:
                 ents = kj.get("entities", {})
-                buckets = [("conditions",2.0),("diagnoses",2.0),("symptoms",1.5),
-                           ("tests_ordered",1.5),("test_results",1.8),
-                           ("medications",1.6),("procedures",1.5),
-                           ("treatment_plan",1.7),("allergies",1.3),("other_keywords",1.0)]
+                '''
+                buckets = [("sairaudet",2.0),("diagnoosit",2.0),("oireet",2.0),
+                           ("suunnitellut testit",1.8),("tutkimustulokset",1.8),
+                           ("lääkkeet",1.5), ("interventiot",1.3), 
+                           ("hoitosuunnitelma",1.7),("allergiat",1.3),("muut avainsanat",1.0)]
                 parts=[]
                 for k,w in buckets:
                     for v in ents.get(k,[]) or []:
                         v = str(v).strip()
                         if v:
                             parts.append((" "+v)*max(1,int(round(w))))
+                '''
+                parts = []
+                for values in ents.values():
+                    for v in values or []:
+                        v = str(v).strip()
+                        if v:
+                            parts.append(v)
+                print(f"[debug] parts: {parts}")
                 return " ".join(parts).strip()
 
             combo = summary + ("\n\nKEYWORDS: " + kw_to_query(kjson) if kjson else "")
@@ -230,4 +240,4 @@ def main():
     print(f"\nSaved {n} items to {args.out}")
 
 if __name__ == "__main__":
-    main()
+    main_preview_inputs()

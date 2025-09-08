@@ -243,7 +243,7 @@ def build_fused_from_triplet(trip_dir: str, out_parent: str, weights: Tuple[floa
 
 # -------------------- 主程序 --------------------
 
-def main():
+def main_build_faiss_index(embed_model: List[str]):
     print(GUIDELINE_JSON_DIR)
     print(GUIDELINE_FAISS_DIR)
     print(EMBEDDING_MODELS_LIST_PATH)
@@ -251,8 +251,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data_glob", default=GUIDELINE_JSON_DIR, help="指南 JSONL 的 glob,如 datasets/**/*.jsonl")
     ap.add_argument("--out_root", default=GUIDELINE_FAISS_DIR, help="输出根目录，如 faiss_store")
-    ap.add_argument("--models", type=str, default="", help="逗号分隔的模型列表,和--models_file二选一,默认使用embedding_models.txt")
-    ap.add_argument("--models_file", type=str, default=EMBEDDING_MODELS_LIST_PATH, help="包含每行一个模型名的文件, .txt文件")
+    # ap.add_argument("--models", type=str, default="intfloat/multilingual-e5-large-instruct", help="逗号分隔的模型列表,和--models_file二选一,默认使用embedding_models.txt")
+    ap.add_argument("--models_file", type=str, default="") # EMBEDDING_MODELS_LIST_PATH, help="包含每行一个模型名的文件, .txt文件")
     ap.add_argument("--modes", type=str, default="chunk_only,concat,triplet,fused",
                     help="要构建的模式:chunk_only,concat,triplet,fused(逗号分隔)")
     ap.add_argument("--fusion_weights", type=str, default="1.0,0.6,0.4", help="用于 fused 的 alpha,beta,gamma")
@@ -263,8 +263,8 @@ def main():
 
     # 解析模型列表
     models: List[str] = []
-    if args.models:
-        models += [m.strip() for m in args.models.split(",") if m.strip()]
+    if embed_model:
+        models += [m.strip() for m in embed_model.split(",") if m.strip()]
     if args.models_file:
         with open(args.models_file, "r", encoding="utf-8") as f:
             for line in f:
@@ -342,4 +342,4 @@ def main():
     print("\nAll done ✓")
 
 if __name__ == "__main__":
-    main()
+    main_build_faiss_index(embed_model)
