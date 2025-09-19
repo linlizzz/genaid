@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 import faiss
 from tqdm import tqdm
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, CrossEncoder
+import pickle, re
 import sys 
 sys.path.append("/scratch/work/zhangl9/genaid/") 
 sys.path.append("/scratch/work/zhangl9/genaid/TestBed/retrieval") 
@@ -17,11 +18,12 @@ sys.path.append("/scratch/work/zhangl9/genaid/TestBed/")
 
 # config
 from utils import load_paths
+from build_bm25_index import main_build_bm25_index
 
 paths = load_paths()
 CLINICAL_NOTES_PATH = paths["CLINICAL_NOTES_PATH"]
 PROMPTS_PATH = paths["PROMPTS_PATH"]
-NOTES_REFINEMENT = paths["NOTES_REFINEMENT"]
+NOTES_REWRITTEN_DIR = paths["NOTES_REWRITTEN_DIR"]
 GUIDELINE_JSON_DIR = paths["GUIDELINE_JSON_DIR"]
 GUIDELINE_FAISS_DIR = paths["GUIDELINE_FAISS_DIR"]
 
@@ -31,6 +33,70 @@ GUIDELINE_FAISS_DIR = paths["GUIDELINE_FAISS_DIR"]
 # 工具函数
 # =========================
 
+def tokenize_finnish_query(s: str):
+    s = re.sub(r"\s+", " ", s.lower()).strip()
+    return s.split()
+
+# RRF (Reciprocal Rank Fusion)
+def rrf_fusion_weighted(run_rank_dicts, k_const=60, top_k=50, weights=None):
+    scores = {}
+    n = len(run_rank_dicts)
+    w_list = [1.0]*n if not weights else list(map(float, weights))
+    assert len(w_list) == n
+    for idx, run in enumerate(run_rank_dicts):
+        w = w_list[idx]
+        for cid, rank in run.items():
+            scores[cid] = scores.get(cid, 0.0) + w * (1.0 / (k_const + rank))
+    sorted_items = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    return [cid for cid, _ in sorted_items[:top_k]]
+
+# BM25 sparse retriever
+def bm25_search(query_text: str, top_k: int, bm25_obj, bm25_metas):
+    toks = tokenize_finnish_query(query_text)
+    scores = bm25_obj.get_scores(toks)
+    # 取 top_k 的下标
+    idxs = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    hits = []
+    for rank, i in enumerate(idxs, start=1):
+        m = bm25_metas[i]
+        hits.append({
+            "guideline_id": m["guideline_id"],
+            "chunk_id": m["chunk_id"],
+            "score": float(scores[i]),
+            "rank": rank,
+            "title": "",
+            "source": "bm25"
+        })
+    return hits
+
+# Rerank with Cross-Encoder
+def get_chunk_text_from_hit(h):
+    print("[degub] get_chunk_text_from_hit", h)
+    # 从命中项提取 chunk 文本的最佳可用字段
+    # 你的 FAISS db.search 返回里如果有 content/page_content/snippet，就能直接用
+    return (h.get("content") or
+            h.get("page_content") or
+            h.get("text") or
+            h.get("snippet") or
+            "")
+
+def rerank_with_ce(ce: CrossEncoder, query_text: str, hits: list, top_k: int, batch_size: int = 64):
+    # 只对前 N 个候选进行重排（避免过慢）
+    cand = hits[:max(top_k, 200)]
+    print(f"[debug] cand: {cand}")
+    pairs = [(query_text, get_chunk_text_from_hit(h)) for h in cand]
+    # CE 返回得分，越大越相关
+    scores = ce.predict(pairs, batch_size=batch_size, convert_to_numpy=True, show_progress_bar=False)
+    order = sorted(range(len(scores)), key=lambda i: float(scores[i]), reverse=True)[:top_k]
+    reranked = [cand[i] for i in order]
+    # 附带存一下分数用于调试
+    for i, idx in enumerate(order):
+        reranked[i]["score_ce"] = float(scores[idx])
+        reranked[i]["source"] = (reranked[i].get("source") or "") + "+ce"
+    return reranked
+
+
+
 def load_jsonl(path: str) -> List[dict]:
     out = []
     with open(path, "r", encoding="utf-8") as f:
@@ -39,9 +105,9 @@ def load_jsonl(path: str) -> List[dict]:
                 out.append(json.loads(line))
     return out
 
-def load_notes_refinement(path: str) -> Dict[str, dict]:
+def load_notes_rewritten(path: str) -> Dict[str, dict]:
     """
-    notes_rewritten_preview.jsonl:
+    notes_rewritten_{model_name}.jsonl:
       { "note_id": str, "summary": str, "keywords_json": {...}, "combo_query": str }
     """
     mp = {}
@@ -64,6 +130,7 @@ def keywords_to_query(kjson: dict) -> str:
     if not kjson:
         return ""
     ents = (kjson.get("entities") or {})
+    '''
     buckets = [
         ("conditions", 2.0),
         ("diagnoses", 2.0),
@@ -83,6 +150,14 @@ def keywords_to_query(kjson: dict) -> str:
             v = str(v).strip()
             if v:
                 parts.append((" " + v) * max(1, int(round(w))))
+    '''
+    parts = []
+    for values in ents.values():
+        for v in values or []:
+            v = str(v).strip()
+            if v:
+                parts.append(v)
+    print(f"[debug] parts: {parts}")
     return " ".join(parts).strip()
 
 def build_query_for_mode(
@@ -93,7 +168,7 @@ def build_query_for_mode(
 ) -> Tuple[str, dict]:
     """
     返回 (query_text, aux);aux 内含 {summary, keywords_json}
-    优先使用预计算的 notes_refinement文档: notes_rewritten_preview.jsonl
+    优先使用预计算的 notes_rewritten文档: notes_rewritten_{model_name}.jsonl
     """
     aux = {"summary": "", "keywords_json": {}}
     pre = preview_map.get(note_id)
@@ -236,13 +311,15 @@ def ap_at_k(hits_binary: List[int], gt_count: int, k: int) -> float:
 # -------------------------
 # 主流程
 # -------------------------
-def main_experiment_retrieval(model_faiss_dir_name: str, query_model: str):
+def main_experiment_retrieval(query_model: str, retriever_mode: str):
+    model_name = sanitize_model_name(query_model)
+    model_faiss_dir_name = model_name
     ap = argparse.ArgumentParser()
     # 路径：默认采用你提供的常量，可由命令行覆盖
     ap.add_argument("--notes", type=str, default=CLINICAL_NOTES_PATH,
                     help="clinical_notes.jsonl(含 note_id, text, linked_guideline_ids)")
-    ap.add_argument("--notes_refinement", type=str, default=NOTES_REFINEMENT,
-                    help="notes_rewritten_preview.jsonl(含 note_id, summary, keywords_json, combo_query)")
+    ap.add_argument("--notes_rewritten_dir", type=str, default=NOTES_REWRITTEN_DIR,
+                    help="the dir to notes_rewritten_model_name.jsonl(含 note_id, summary, keywords_json, combo_query)")
     ap.add_argument("--faiss_root", type=str, default=GUIDELINE_FAISS_DIR,
                     help="FAISS 根目录（其下有各模型/子索引目录）")
     # 选择要对比的 embedding 子目录（默认三种）
@@ -255,20 +332,51 @@ def main_experiment_retrieval(model_faiss_dir_name: str, query_model: str):
     # 模型与检索参数
     # ap.add_argument("--query_model", type=str, default="sentence-transformers/all-MiniLM-L6-v2", help="用于编码查询的 SentenceTransformers 模型")
     ap.add_argument("--top_k", type=int, default=10, help="评测@K(同时也用于检索返回 K)")
+    # 检索模式
+    # ap.add_argument("--retriever_mode", choices=["dense","hybrid","hybrid_rerank"], default="dense")
+    ap.add_argument("--bm25_index", type=str, default="bm25_index_chunk.pkl")
+    ap.add_argument("--rrf_k", type=int, default=60)
+    ap.add_argument("--bm25_k", type=int, default=600)
+    ap.add_argument("--dense_k", type=int, default=300)
+    ap.add_argument("--final_k", type=int, default=10)
+    ap.add_argument("--no_mmr", action="store_true")
+    ap.add_argument("--no_rerank", action="store_true")
+
+    # Cross-Encoder 相关
+    ap.add_argument("--rerank_model", type=str, default="cross-encoder/ms-marco-MiniLM-L-6-v2",
+                help="Cross-Encoder 模型名(sentence-transformers 模型)")
+    ap.add_argument("--rerank_max_length", type=int, default=512, help="CE 编码最大长度")
+    ap.add_argument("--rerank_batch_size", type=int, default=64, help="CE 预测批大小")
+    ap.add_argument("--rerank_candidate_k", type=int, default=200, help="送入 CE 重排的候选数(来自 RRF 融合的前N)")
+
     # 输出
     ap.add_argument("--out_detail", type=str, default="exp_details.jsonl")
     ap.add_argument("--out_summary", type=str, default="exp_summary.csv")
     args = ap.parse_args()
 
+    bm25_obj = None
+    if retriever_mode in ("hybrid","hybrid_rerank"):
+        main_build_bm25_index()
+        with open(args.bm25_index, "rb") as f:
+            tmp = pickle.load(f)
+        bm25_obj = tmp["bm25"]
+        bm25_metas = tmp["metas"]
+    
+    # 仅在 hybrid_rerank 且未关闭重排时加载 CE
+    ce = None
+    if retriever_mode == "hybrid_rerank" and (not args.no_rerank):
+        print(f"[reranker] loading Cross-Encoder: {args.rerank_model}")
+        ce = CrossEncoder(args.rerank_model, max_length=args.rerank_max_length)
+
     # 默认：若未显式选择，则启用三种（为了显式可控，这里采用“至少选一个”的逻辑）
     if not (args.use_chunk or args.use_concat or args.use_fused):
         args.use_chunk = args.use_concat = args.use_fused = True
 
-    # 读取 notes 与 notes_refinement
+    # 读取 notes 与 notes_rewritten
     if not args.notes:
         raise ValueError("请提供 --notes 或在脚本顶部 paths['CLINICAL_NOTES_PATH'] 设置路径")
     notes = load_jsonl(args.notes)
-    preview_map = load_notes_refinement(args.notes_refinement) if args.notes_refinement else {}
+    preview_map = load_notes_rewritten(os.path.join(args.notes_rewritten_dir, f"notes_rewritten_{model_name}.jsonl")) if args.notes_rewritten_dir else {}
 
     if len(notes) == 0:
         raise ValueError("notes 文件为空或解析失败")
@@ -328,7 +436,7 @@ def main_experiment_retrieval(model_faiss_dir_name: str, query_model: str):
 
     # 评测主循环
     modes = [m.strip() for m in args.modes.split(",") if m.strip()]
-    detail_f = open(f"results/{model_faiss_dir_name}/{args.out_detail}", "w", encoding="utf-8")
+    detail_f = open(f"results/{model_faiss_dir_name}/{retriever_mode}/{args.out_detail}", "w", encoding="utf-8")
 
     rows_summary = []  # 聚合汇总
     # 准备 notes 的 ground truth
@@ -370,9 +478,58 @@ def main_experiment_retrieval(model_faiss_dir_name: str, query_model: str):
                 q = qmodel.encode([qtext], convert_to_numpy=True, normalize_embeddings=True).astype("float32")
 
                 # 检索
-                hits = db.search(q[0], top_k=args.top_k)
+                if retriever_mode == "dense":
+                    # dense retriever
+                    hits = db.search(q[0], top_k=args.top_k)
+                    if hits:
+                        print("[debug-check] sample hit keys:", hits[0].keys())
+                    print(f"[debug] mode={mode} hits_len={len(hits)} top_guidelines={[h['guideline_id'] for h in hits[:5]]}")
+                else:
+                    # Hybrid / Hybrid+Rerank：Dense(当前变体) + BM25(chunk) → RRF
+                    dense_hits = db.search(q[0], top_k=max(args.dense_k, args.top_k, 50))
+                    if dense_hits:
+                        print("[debug-check] sample dense hit keys:", dense_hits[0].keys())
+                    bm25_hits  = bm25_search(qtext, top_k=max(args.bm25_k, 600), bm25_obj=bm25_obj, bm25_metas=bm25_metas)
+                    if bm25_hits:
+                        print("[debug-check] sample bm25 hit keys:", bm25_hits[0].keys())
+                    # 以 chunk_id 做融合键；构造 rank 字典
+                    ranks_dense, ranks_bm25 = {}, {}
+                    for i, h in enumerate(dense_hits): 
+                        cid = h["chunk_id"]; ranks_dense[cid] = min(ranks_dense.get(cid, 1e9), i+1)
+                    for i, h in enumerate(bm25_hits):
+                        cid = h["chunk_id"]; ranks_bm25[cid] = min(ranks_bm25.get(cid, 1e9), i+1)
+                    
+                    fused_cids = rrf_fusion_weighted(
+                        [ranks_dense, ranks_bm25],
+                        k_const=args.rrf_k,
+                        top_k=args.final_k,
+                        weights=[1.0, 1.0]   # 如需调权重：Dense 1.0, BM25 1.2 等
+                    )
+                    
+                    # 回捞元信息（优先 Dense，再 BM25）
+                    pool = {}
+                    for h in dense_hits: pool[h["chunk_id"]] = h
+                    for h in bm25_hits:  pool.setdefault(h["chunk_id"], h)
+                    hits = [pool[cid] for cid in fused_cids if cid in pool]
 
-                print(f"[debug] mode={mode} hits_len={len(hits)} top_guidelines={[h['guideline_id'] for h in hits[:5]]}")
+                    print(f"[debug-hybrid] dense top={[h['guideline_id'] for h in dense_hits[:5]]}, "
+                          f"bm25 top={[h['guideline_id'] for h in bm25_hits[:5]]}, "
+                          f"fused={fused_cids[:5]}")
+
+                    
+                    # （可选）在此处加入 MMR 去冗余 or Cross-Encoder 重排（hybrid_rerank）
+                    # if retriever_mode == "hybrid_rerank" and not args.no_rerank:
+                    #     hits = rerank_with_ce(qtext, hits[:200], top_k=args.final_k)
+
+                    # Hybrid + Rerank: Cross-Encoder 重排
+                    if retriever_mode == "hybrid_rerank" and (not args.no_rerank) and  ce is not None:
+                        hits = rerank_with_ce(ce, qtext, fused_cids, top_k=args.final_k, batch_size=args.rerank_batch_size)
+                    else:
+                        # 仅Hybrid, 无重排时剪裁到final_k
+                        hits = fused_cids[:args.final_k]
+                    
+                    print(f"[debug] mode={mode} hits_len={len(hits)} top_guidelines={[h['guideline_id'] for h in hits[:5]]}")
+
 
                 # 将命中里的 guideline_id 映射为文档级（去重保持顺序）
                 ranked_guidelines = []
@@ -424,10 +581,10 @@ def main_experiment_retrieval(model_faiss_dir_name: str, query_model: str):
             print(f"[summary] {summ}")
 
     detail_f.close()
-    pd.DataFrame(rows_summary).to_csv(f"results/{model_faiss_dir_name}/{args.out_summary}", index=False)
-    print(f"\n[done] details -> results/{model_faiss_dir_name}/{args.out_detail}")
-    print(f"[done] summary -> results/{model_faiss_dir_name}/{args.out_summary}")
+    pd.DataFrame(rows_summary).to_csv(f"results/{model_faiss_dir_name}/{retriever_mode}/{args.out_summary}", index=False)
+    print(f"\n[done] details -> results/{model_faiss_dir_name}/{retriever_mode}/{args.out_detail}")
+    print(f"[done] summary -> results/{model_faiss_dir_name}/{retriever_mode}/{args.out_summary}")
     print("Tips: 使用 export_latex_tables.py / plot_experiment_results.py 进一步出表与画图。")
 
 if __name__ == "__main__":
-    main_experiment_retrieval(model_faiss_dir_name, query_model)
+    main_experiment_retrieval(query_model, retriever_mode)

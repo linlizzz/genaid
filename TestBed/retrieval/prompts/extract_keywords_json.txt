@@ -14,7 +14,6 @@ Skeema:
     "tutkimustulokset": [],      // konkreettiset tulokset/havainnot (string)
     "diagnoosit": [],         // lääkärin diagnoosit (string)
     "lääkkeet": [],       // lääkkeiden nimet + annos jos mainittu (string)
-    "allergiat": [],         // allergiat (string)
     "interventiot": [],        // toimenpiteet/interventiot (string)
     "hoitosuunnitelma": [],    // suunnitellut toimenpiteet (string)
     "muut avainsanat": []     // muut keskeiset kliiniset avainsanat (string)
@@ -65,4 +64,4 @@ Tuloste:
 Käsittele seuraava teksti:
 {{NOTE_TEXT}}
 
-Tuloste: vain JSON, ei mitään ylimääräistä tekstiä.
+Tuloste: vain JSON, ei mitään ylimääräistä tekstiä. Kirjoita suomeksi. Tuota suomeksi. 

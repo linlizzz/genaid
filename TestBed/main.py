@@ -6,7 +6,7 @@ sys.path.append("/scratch/work/zhangl9/genaid/")
 from export_tables_plots import main_export_tables_plots
 
 print("Preview inputs start...")
-# main_preview_inputs()
+main_preview_inputs()
 print("Preview inputs done!")
 
 print("Build faiss index start...")
@@ -14,9 +14,11 @@ print("Build faiss index start...")
 print("Build faiss index done!")
 
 print("Experiment retrieval start...")
-# main_experiment_retrieval(model_faiss_dir_name="intfloat_multilingual-e5-large-instruct", query_model="intfloat/multilingual-e5-large-instruct")
+# modify retriever_mode ["dense", "hybrid", "hybrid_rerank"]
+# main_experiment_retrieval(query_model="intfloat/multilingual-e5-large-instruct", retriever_mode="hybrid_rerank")
 print("Experiment retrieval done!")
 
 print("Export tables plots start...")
-main_export_tables_plots(embed_model_dir_name="intfloat_multilingual-e5-large-instruct")
+# modify retriever_mode ["dense", "hybrid", "hybrid_rerank"]
+# main_export_tables_plots(embed_model_dir_name="intfloat_multilingual-e5-large-instruct", retriever_mode="hybrid_rerank")
 print("Export tables plots done!")

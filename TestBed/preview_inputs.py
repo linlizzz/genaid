@@ -5,13 +5,14 @@ sys.path.append("/scratch/work/zhangl9/genaid/")
 sys.path.append("/scratch/work/zhangl9/genaid/TestBed/retrieval") 
 
 # config
-from utils import read_secrets, load_paths, load_prompt, render_prompt
+from utils import read_secrets, load_paths, load_prompt, render_prompt, sanitize_model_name
 
 secrets = read_secrets()
 OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 OPENAI_MODEL = secrets["OPENAI_MODEL"]
 paths = load_paths()
 CLINICAL_NOTES_PATH = paths["CLINICAL_NOTES_PATH"]
+NOTES_REWRITTEN_DIR = paths["NOTES_REWRITTEN_DIR"]
 PROMPTS_PATH = paths["PROMPTS_PATH"]
 
 # ---------------- Local chat adapter (Transformers) ----------------
@@ -133,20 +134,22 @@ def parse_llm_json(raw: str) -> Dict:
     except Exception:
         # 返回空 schema，避免崩溃
         return {"language":"", "entities":{
-            "conditions":[], "symptoms":[], "tests_ordered":[], "test_results":[],
-            "diagnoses":[], "medications":[], "allergies":[], "procedures":[],
-            "treatment_plan":[], "other_keywords":[]
+            "sairaudet":[], "oireet":[], "suunnitellut testit":[], "tutkimustulokset":[],
+            "diagnoosit":[], "lääkkeet":[], "interventiot":[], "hoitosuunnitelma":[],
+            "muut avainsanat":[]
         }}
+
 
 # ---------------- CLI main ----------------
 def main_preview_inputs():
     ap = argparse.ArgumentParser()
     ap.add_argument("--notes", default=CLINICAL_NOTES_PATH)
-    ap.add_argument("--out", default="notes_rewritten_preview.jsonl")
+    ap.add_argument("--out_dir", default=NOTES_REWRITTEN_DIR)
     ap.add_argument("--prompts_dir", default=PROMPTS_PATH)
     ap.add_argument("--backend", default="local", choices=["local","openai","none"])
-    ap.add_argument("--model", default="utter-project/EuroLLM-9B-Instruct",
-                    help="本地: HF 模型ID;OpenAI: 模型名(如 gpt-4o-mini)") # models = ["LumiOpen/Poro-34B-chat", "BioMistral/BioMistral-7B", "utter-project/EuroLLM-9B-Instruct"]
+    ap.add_argument("--model", default="openai/gpt-oss-120b",
+                    help="本地: HF 模型ID;OpenAI: 模型名(如 gpt-4o-mini)") 
+                    # models = ["LumiOpen/Poro-34B-chat", "BioMistral/BioMistral-7B", "utter-project/EuroLLM-9B-Instruct", "openai/gpt-oss-120b"]
     ap.add_argument("--device_map", default="auto",
                     help='Transformers device map, e.g., "auto" | "cuda:0"')
     ap.add_argument("--dtype", default="bfloat16", choices=["bfloat16","float16"])
@@ -164,8 +167,11 @@ def main_preview_inputs():
     llm = LLM(args.backend, args.model, device_map=args.device_map, dtype=args.dtype)
 
     n = 0
+
+    model_name = sanitize_model_name(args.model)
+    out_path = os.path.join(args.out_dir, f"notes_rewritten_{model_name}.jsonl")
     with open(args.notes, "r", encoding="utf-8") as fin, \
-         open(args.out, "w", encoding="utf-8") as fout:
+         open(out_path, "w", encoding="utf-8") as fout:
         for line in fin:
             if args.maxn and n >= args.maxn:
                 break
@@ -237,7 +243,7 @@ def main_preview_inputs():
             print("KEYWORDS(JSON):\n", json.dumps(kjson, ensure_ascii=False))
             print("COMBO (preview):\n", combo[:400], "...")
 
-    print(f"\nSaved {n} items to {args.out}")
+    print(f"\nSaved {n} items to {out_path}")
 
 if __name__ == "__main__":
     main_preview_inputs()

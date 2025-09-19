@@ -10,7 +10,7 @@ import faiss
 import sys 
 sys.path.append("/scratch/work/zhangl9/genaid/") 
 sys.path.append("/scratch/work/zhangl9/genaid/TestBed/") 
-from utils import load_paths
+from utils import load_paths, sanitize_model_name
 
 """
 (E5 前缀、keywords 解析、content 抽取都内置)
@@ -146,15 +146,6 @@ def load_guidelines(jsonl_glob: str) -> pd.DataFrame:
 
 # -------------------- 编码/索引工具 --------------------
 
-def sanitize_model_name(model: str) -> str:
-    # 将 "intfloat/multilingual-e5-base" -> "intfloat_multilingual-e5-base"
-    # 再把 "." -> "p" 以避免文件系统/路径转义问题
-    s = model.strip().replace("/", "_")
-    s = s.replace(" ", "_")
-    s = s.replace(".", "p")
-    s = re.sub(r"[^A-Za-z0-9_\-\+]", "_", s)
-    return s
-
 def needs_e5_prefix(model_name: str) -> bool:
     return "e5" in (model_name or "").lower()
 
@@ -264,7 +255,8 @@ def main_build_faiss_index(embed_model: List[str]):
     # 解析模型列表
     models: List[str] = []
     if embed_model:
-        models += [m.strip() for m in embed_model.split(",") if m.strip()]
+        models = embed_model
+        # models += [m.strip() for m in embed_model.split(",") if m.strip()]
     if args.models_file:
         with open(args.models_file, "r", encoding="utf-8") as f:
             for line in f:
